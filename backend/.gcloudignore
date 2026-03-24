@@ -1,0 +1,22 @@
+# Ignore common Python and Node.js artifacts
+.git
+.gitignore
+.gcloudignore
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.env
+.env.local
+node_modules/
+.next/
+.vscode/
+.idea/
+.DS_Store
+*.log
+tests/
+requirements-dev.txt
+pyproject.toml
