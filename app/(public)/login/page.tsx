@@ -5,11 +5,13 @@ import { useAuth } from "@/lib/auth-context";
 import { Github, Loader2, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useToast } from "@/components/Toast";
 
 export default function LoginPage() {
   const { signInWithGoogle, user, loading } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
+  const { toast } = useToast();
 
   // Redirect if already logged in (Auto-redirect)
   useEffect(() => {
@@ -87,11 +89,11 @@ export default function LoginPage() {
           </button>
 
           <button
-            disabled
-            className="flex h-12 w-full items-center justify-center gap-3 rounded-xl border border-black/[0.08] bg-white px-4 text-sm font-semibold text-[#1D1D1F] transition-all hover:bg-zinc-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            onClick={() => toast("GitHub login is coming soon!", "info")}
+            className="flex h-12 w-full items-center justify-center gap-3 rounded-xl border border-black/[0.08] bg-white px-4 text-sm font-semibold text-[#1D1D1F] transition-all hover:bg-zinc-50"
           >
             <Github className="h-5 w-5" />
-            GitHub (Coming Soon)
+            Continue with GitHub
           </button>
         </div>
 
@@ -107,22 +109,13 @@ export default function LoginPage() {
           </div>
         </div>
 
-        {/* Email Form (Visual only for now) */}
-        <form className="space-y-4" onSubmit={(e) => e.preventDefault()}>
-          <div>
-            <label className="text-xs font-bold text-[#86868B] uppercase tracking-wider ml-1">
-              Email Address
-            </label>
-            <input
-              type="email"
-              placeholder="name@example.com"
-              className="mt-2 flex h-12 w-full rounded-xl border border-black/[0.08] bg-zinc-50 px-4 py-2 text-sm text-black placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium"
-            />
-          </div>
-          <button className="w-full rounded-xl bg-blue-600 py-3.5 text-sm font-bold text-white hover:bg-blue-700 transition-all shadow-lg shadow-blue-600/20">
-            Sign In with Email
-          </button>
-        </form>
+        {/* Email Login — Coming Soon */}
+        <div className="rounded-2xl border border-black/[0.04] bg-zinc-50 p-6 text-center">
+          <p className="text-sm text-[#86868B] font-medium">
+            <span className="inline-block px-2.5 py-0.5 bg-zinc-200 text-zinc-600 rounded-full text-[10px] font-bold uppercase tracking-wider mr-2">Coming Soon</span>
+            Email & password login
+          </p>
+        </div>
 
         <div className="text-center text-sm text-[#86868B] font-medium">
           Don&apos;t have an account?{" "}

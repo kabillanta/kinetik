@@ -4,21 +4,26 @@
 
 import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
-import { Loader2, Calendar, MapPin, Building, ArrowLeft } from "lucide-react";
+import { Loader2, Calendar, MapPin, Building, ArrowLeft, X as XIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { API_BASE_URL } from "@/lib/api-config";
+import { useToast } from "@/components/Toast";
 
 export default function ApplicationsPage() {
   const { user } = useAuth();
   const router = useRouter();
   const [applications, setApplications] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [withdrawing, setWithdrawing] = useState<string | null>(null);
+  const { toast } = useToast();
 
   useEffect(() => {
     const fetchApplications = async () => {
       if (!user) return;
       try {
         const token = await user.getIdToken();
-        const res = await fetch(`http://localhost:8000/api/users/${user.uid}/applications`, {
+
+        const res = await fetch(`${API_BASE_URL}/api/users/${user.uid}/applications`, {
           headers: {
             Authorization: `Bearer ${token}`,
           }
@@ -93,9 +98,86 @@ export default function ApplicationsPage() {
                 </div>
               </div>
               <div className="mt-5 md:mt-0 flex gap-3">
-                <span className="inline-flex items-center justify-center h-10 px-5 rounded-full bg-emerald-50 text-emerald-600 font-semibold text-sm border border-emerald-100">
-                  Application Sent
-                </span>
+                {app.status === "ACCEPTED" ? (
+                   <div className="flex gap-2">
+                     <span className="inline-flex items-center justify-center h-10 px-5 rounded-full bg-emerald-100 text-emerald-700 font-bold text-sm border border-emerald-200 shadow-sm">
+                       Accepted
+                     </span>
+                     <button
+                       onClick={async () => {
+                         if (!user) return;
+                         if (!confirm("Are you sure you want to withdraw from an accepted event?")) return;
+                         setWithdrawing(app.id);
+                         try {
+                           const token = await user.getIdToken();
+                           const res = await fetch(`${API_BASE_URL}/api/events/${app.id}/apply`, {
+                             method: "DELETE",
+                             headers: { Authorization: `Bearer ${token}` },
+                           });
+                           if (res.ok) {
+                             setApplications(prev => prev.filter(a => a.id !== app.id));
+                             toast("Application withdrawn", "success");
+                           } else {
+                             toast("Failed to withdraw", "error");
+                           }
+                         } catch {
+                           toast("Network error", "error");
+                         } finally {
+                           setWithdrawing(null);
+                         }
+                       }}
+                       disabled={withdrawing === app.id}
+                       className="inline-flex items-center justify-center h-10 px-4 rounded-full bg-zinc-100 text-zinc-600 hover:bg-red-50 hover:text-red-600 font-semibold text-sm transition-all disabled:opacity-50"
+                     >
+                       {withdrawing === app.id ? (
+                         <Loader2 className="h-4 w-4 animate-spin" />
+                       ) : (
+                         <><XIcon className="h-4 w-4 mr-1" /> Withdraw</>
+                       )}
+                     </button>
+                   </div>
+                ) : app.status === "REJECTED" ? (
+                   <span className="inline-flex items-center justify-center h-10 px-5 rounded-full bg-red-100 text-red-700 font-bold text-sm border border-red-200 shadow-sm">
+                     Not Selected
+                   </span>
+                ) : (
+                   <div className="flex gap-2">
+                     <span className="inline-flex items-center justify-center h-10 px-5 rounded-full bg-amber-100 text-amber-700 font-bold text-sm border border-amber-200 shadow-sm">
+                       Pending Review
+                     </span>
+                     <button
+                       onClick={async () => {
+                         if (!user) return;
+                         setWithdrawing(app.id);
+                         try {
+                           const token = await user.getIdToken();
+                           const res = await fetch(`${API_BASE_URL}/api/events/${app.id}/apply`, {
+                             method: "DELETE",
+                             headers: { Authorization: `Bearer ${token}` },
+                           });
+                           if (res.ok) {
+                             setApplications(prev => prev.filter(a => a.id !== app.id));
+                             toast("Application withdrawn", "success");
+                           } else {
+                             toast("Failed to withdraw", "error");
+                           }
+                         } catch {
+                           toast("Network error", "error");
+                         } finally {
+                           setWithdrawing(null);
+                         }
+                       }}
+                       disabled={withdrawing === app.id}
+                       className="inline-flex items-center justify-center h-10 px-4 rounded-full bg-zinc-100 text-zinc-600 hover:bg-red-50 hover:text-red-600 font-semibold text-sm transition-all disabled:opacity-50"
+                     >
+                       {withdrawing === app.id ? (
+                         <Loader2 className="h-4 w-4 animate-spin" />
+                       ) : (
+                         <><XIcon className="h-4 w-4 mr-1" /> Withdraw</>
+                       )}
+                     </button>
+                   </div>
+                )}
               </div>
             </div>
           ))}

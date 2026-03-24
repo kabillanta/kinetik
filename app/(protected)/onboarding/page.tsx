@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { doc, setDoc } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
@@ -13,10 +13,18 @@ import {
   Sparkles,
   AlertCircle,
 } from "lucide-react";
+import { API_BASE_URL } from "@/lib/api-config";
 
 export default function OnboardingPage() {
   const router = useRouter();
-  const { user, refreshProfile } = useAuth();
+  const { user, userProfile, refreshProfile } = useAuth();
+
+  // If user already completed onboarding, redirect to dashboard
+  useEffect(() => {
+    if (userProfile?.onboardingCompleted) {
+      router.push("/dashboard");
+    }
+  }, [userProfile, router]);
 
   const [step, setStep] = useState(1);
   const [role, setRole] = useState<"volunteer" | "organizer" | "">("");
@@ -54,7 +62,7 @@ export default function OnboardingPage() {
     setError("");
 
     try {
-      const userProfile = {
+      const userProfileData = {
         uid: user.uid,
         email: user.email,
         displayName: user.displayName,
@@ -66,20 +74,37 @@ export default function OnboardingPage() {
         createdAt: new Date().toISOString(),
       };
 
-      await setDoc(doc(db, "users", user.uid), userProfile);
+      await setDoc(doc(db, "users", user.uid), userProfileData);
 
-      // Sync skills with backend
+      // Sync user profile to Neo4j backend
       try {
-        await fetch('http://localhost:8000/api/users/skills', {
+        const token = await user.getIdToken();
+        await fetch(`${API_BASE_URL}/api/users`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'X-User-ID': user.uid,
+            'Authorization': `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            firebase_uid: user.uid,
+            email: user.email,
+            name: user.displayName,
+            role: role,
+            photo_url: user.photoURL || '',
+          })
+        });
+
+        // Also sync skills
+        await fetch(`${API_BASE_URL}/api/users/skills`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
           },
           body: JSON.stringify(skills)
         });
       } catch (backendErr) {
-        console.warn('Failed to sync skills with Neo4j backend', backendErr);
+        console.warn('Failed to sync with Neo4j backend — user saved to Firestore only', backendErr);
       }
 
       await refreshProfile();

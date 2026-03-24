@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { Users, Star, Clock, Loader2, CalendarCheck } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
+import { API_BASE_URL } from "@/lib/api-config";
 
 export default function OrganizerAnalytics() {
   const { user } = useAuth();
@@ -14,7 +15,8 @@ export default function OrganizerAnalytics() {
       try {
         if (!user) return;
         const token = await user.getIdToken();
-        const res = await fetch(`http://localhost:8000/api/organizers/${user.uid}/analytics`, {
+
+        const res = await fetch(`${API_BASE_URL}/api/organizers/${user.uid}/analytics`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         if (res.ok) {
@@ -105,7 +107,7 @@ export default function OrganizerAnalytics() {
               <Star className="h-5 w-5" />
             </div>
             <h3 className="font-semibold tracking-wide text-sm">
-              Satisfaction
+              Accept Rate
             </h3>
           </div>
           <div>

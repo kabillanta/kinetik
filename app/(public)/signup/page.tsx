@@ -16,6 +16,7 @@ import {
 import { useAuth } from "@/lib/auth-context";
 import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
 import { auth } from "@/lib/firebase";
+import { API_BASE_URL } from "@/lib/api-config";
 
 export default function SignupPage() {
   const [step, setStep] = useState<1 | 2>(1);
@@ -40,7 +41,7 @@ export default function SignupPage() {
       const token = await firebaseUser.getIdToken();
 
       // Send to your Python/FastAPI Backend
-      const response = await fetch("http://localhost:8000/api/users", {
+      const response = await fetch(`${API_BASE_URL}/api/users`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -81,6 +82,9 @@ export default function SignupPage() {
       if (currentUser) {
         // B. Save to Database
         await saveUserToBackend(currentUser, selectedRole);
+        
+        // C. Save role locally
+        localStorage.setItem("kinetik_user_role", selectedRole);
       }
 
       router.push("/dashboard");
@@ -114,6 +118,9 @@ export default function SignupPage() {
 
       // C. Save to Database
       await saveUserToBackend(userCredential.user, selectedRole);
+
+      // D. Save role locally for immediate dashboard access
+      localStorage.setItem("kinetik_user_role", selectedRole);
 
       router.push("/dashboard");
     } catch (err: any) {

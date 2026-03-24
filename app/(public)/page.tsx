@@ -24,15 +24,12 @@ const FloatingNavbar = () => {
 
         {/* Center Links */}
         <div className="hidden md:flex items-center gap-8 text-sm font-medium text-zinc-500">
-          <a href="#" className="hover:text-black transition-colors">
-            Platform
-          </a>
-          <a href="#" className="hover:text-black transition-colors">
-            Solutions
-          </a>
-          <a href="#" className="hover:text-black transition-colors">
-            Pricing
-          </a>
+          <Link href="/signup" className="hover:text-black transition-colors">
+            For Volunteers
+          </Link>
+          <Link href="/signup" className="hover:text-black transition-colors">
+            For Organizers
+          </Link>
         </div>
 
         {/* Right Actions */}
@@ -169,9 +166,11 @@ const Hero = () => {
               <span className="text-xs font-bold text-zinc-400">
                 Oct 12–14 • Remote
               </span>
-              <button className="bg-black text-white px-6 py-2.5 rounded-full text-sm font-bold hover:bg-zinc-800 transition-colors">
-                View Details
-              </button>
+              <Link href="/signup">
+                <button className="bg-black text-white px-6 py-2.5 rounded-full text-sm font-bold hover:bg-zinc-800 transition-colors">
+                  Get Started
+                </button>
+              </Link>
             </div>
           </div>
         </div>

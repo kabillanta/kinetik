@@ -5,36 +5,23 @@ import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { useRouter } from "next/navigation";
 import {
+  CheckCircle2,
+  CheckCircle,
+  XCircle,
+  LayoutDashboard,
+  Trash2,
+  Loader2,
   Users,
   Calendar,
-  Plus,
-  CheckCircle2,
-  XCircle,
-  LayoutDashboard
+  Plus
 } from "lucide-react";
 import CreateEventModal from "@/components/CreateEventModal";
+import StatCard from "@/components/StatCard";
 import { User } from "firebase/auth";
+import { API_BASE_URL } from "@/lib/api-config";
+import { useToast } from "@/components/Toast";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function StatCard({ label, value, icon: Icon }: any) {
-  return (
-    <div className="p-6 rounded-2xl border border-black/[0.04] bg-white flex flex-col justify-between shadow-sm hover:shadow-md transition-all">
-      <div className="flex items-center justify-between mb-4">
-        <div className="text-[#86868B] text-xs uppercase tracking-widest font-semibold">
-          {label}
-        </div>
-        {Icon && (
-          <div className="p-2 bg-black/[0.03] rounded-xl text-black">
-            <Icon className="h-4 w-4" />
-          </div>
-        )}
-      </div>
-      <div className="text-4xl font-semibold text-black tracking-tight">
-        {value}
-      </div>
-    </div>
-  );
-}
+// StatCard imported from @/components/StatCard
 
 // --- 2. THE ORGANIZER VIEW ---
 const OrganizerDashboard = ({
@@ -53,22 +40,26 @@ const OrganizerDashboard = ({
     recent_events?: any[];
   } | null>(null);
   const [loading, setLoading] = useState(true);
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [deletingEvent, setDeletingEvent] = useState<string | null>(null);
+  const [completingEvent, setCompletingEvent] = useState<string | null>(null);
+  const { toast } = useToast();
 
   const handleApplicationAction = async (eventId: string, volunteerId: string, status: "ACCEPTED" | "REJECTED") => {
+    const actionKey = `${eventId}-${volunteerId}-${status}`;
+    setActionLoading(actionKey);
     try {
       if (!user) return;
       const token = await user.getIdToken();
-      const res = await fetch(`http://localhost:8000/api/events/${eventId}/applications/${volunteerId}/status`, {
+      const res = await fetch(`${API_BASE_URL}/api/events/${eventId}/applications/${volunteerId}/status`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
-          "X-User-ID": user.uid
         },
         body: JSON.stringify({ status })
       });
       if (res.ok) {
-        // Optimistically update the UI
         setDashboardData((prev: any) => {
           if (!prev) return prev;
           return {
@@ -79,6 +70,8 @@ const OrganizerDashboard = ({
       }
     } catch (error) {
       console.error(`Failed to ${status} application:`, error);
+    } finally {
+      setActionLoading(null);
     }
   };
 
@@ -88,7 +81,7 @@ const OrganizerDashboard = ({
       const token = await user.getIdToken();
 
       const res = await fetch(
-        `http://localhost:8000/api/organizers/${user.uid}/dashboard`,
+        `${API_BASE_URL}/api/organizers/${user.uid}/dashboard`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -246,8 +239,82 @@ const OrganizerDashboard = ({
                           ))}
                         </div>
                       </div>
-                      <div className="text-xs font-semibold text-zinc-400 bg-zinc-50 px-3 py-1.5 rounded-full whitespace-nowrap">
-                        {ev.date || "No date"}
+                      <div className="flex flex-col items-end gap-2">
+                        <div className="text-xs font-semibold text-zinc-400 bg-zinc-50 px-3 py-1.5 rounded-full whitespace-nowrap">
+                          {ev.date || "No date"}
+                        </div>
+                        <button
+                          onClick={async () => {
+                            if (!user) return;
+                            if (!confirm("Are you sure you want to delete this event? This will also remove all applications for it.")) return;
+                            setDeletingEvent(ev.id);
+                            try {
+                              const token = await user.getIdToken();
+                              const res = await fetch(`${API_BASE_URL}/api/events/${ev.id}`, {
+                                method: "DELETE",
+                                headers: { Authorization: `Bearer ${token}` }
+                              });
+                              if (res.ok) {
+                                setDashboardData(prev => prev ? {
+                                  ...prev,
+                                  recent_events: prev.recent_events?.filter(e => e.id !== ev.id),
+                                  stats: { ...prev.stats, active_events: Math.max(0, prev.stats.active_events - 1) }
+                                } : null);
+                                toast("Event deleted successfully", "success");
+                              } else {
+                                toast("Failed to delete event", "error");
+                              }
+                            } catch (error) {
+                              toast("Network error while deleting", "error");
+                            } finally {
+                              setDeletingEvent(null);
+                            }
+                          }}
+                          disabled={deletingEvent === ev.id}
+                          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors disabled:opacity-50"
+                        >
+                          {deletingEvent === ev.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+                          Delete
+                        </button>
+                        {ev.status !== "COMPLETED" ? (
+                          <button
+                            onClick={async () => {
+                              if (!user) return;
+                              if (!confirm("Are you sure you want to mark this event as completed? This will permanently award impact hours to accepted volunteers.")) return;
+                              setCompletingEvent(ev.id);
+                              try {
+                                const token = await user.getIdToken();
+                                const res = await fetch(`${API_BASE_URL}/api/events/${ev.id}/complete`, {
+                                  method: "POST",
+                                  headers: { Authorization: `Bearer ${token}` }
+                                });
+                                if (res.ok) {
+                                  setDashboardData(prev => prev ? {
+                                    ...prev,
+                                    recent_events: prev.recent_events?.map(e => e.id === ev.id ? { ...e, status: "COMPLETED" } : e),
+                                    stats: { ...prev.stats, active_events: Math.max(0, prev.stats.active_events - 1) }
+                                  } : null);
+                                  toast("Event marked as completed!", "success");
+                                } else {
+                                  toast("Failed to mark completed", "error");
+                                }
+                              } catch (error) {
+                                toast("Network error", "error");
+                              } finally {
+                                setCompletingEvent(null);
+                              }
+                            }}
+                            disabled={completingEvent === ev.id}
+                            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-emerald-600 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-colors disabled:opacity-50"
+                          >
+                            {completingEvent === ev.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle className="h-3.5 w-3.5" />}
+                            Mark Complete
+                          </button>
+                        ) : (
+                          <span className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-zinc-500 bg-zinc-100/80 rounded-lg">
+                            <CheckCircle2 className="h-3.5 w-3.5 text-zinc-400" /> Completed
+                          </span>
+                        )}
                       </div>
                     </div>
                   </div>

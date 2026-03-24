@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Calendar, Plus, MapPin, Users, Loader2 } from "lucide-react";
 import CreateEventModal from "@/components/CreateEventModal";
 import { useAuth } from "@/lib/auth-context";
+import { API_BASE_URL } from "@/lib/api-config";
 
 export default function OrganizerEvents() {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -20,7 +21,7 @@ export default function OrganizerEvents() {
       const token = await user.getIdToken();
 
       const res = await fetch(
-        `http://localhost:8000/api/organizers/${user.uid}/events`,
+        `${API_BASE_URL}/api/organizers/${user.uid}/events`,
         {
           headers: {
             Authorization: `Bearer ${token}`,

@@ -3,13 +3,15 @@
 import { useState } from 'react';
 import { X, Loader2, Save, Code2 } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
+import { API_BASE_URL } from '@/lib/api-config';
 
 interface EditProfileModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onSave?: () => void;
 }
 
-export default function EditProfileModal({ isOpen, onClose }: EditProfileModalProps) {
+export default function EditProfileModal({ isOpen, onClose, onSave }: EditProfileModalProps) {
   const { user } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [skills, setSkills] = useState('');
@@ -25,24 +27,23 @@ export default function EditProfileModal({ isOpen, onClose }: EditProfileModalPr
       const skillArray = skills.split(',').map(s => s.trim()).filter(s => s.length > 0);
 
       // 2. Send to Backend
-      const res = await fetch('http://localhost:8000/api/users/skills', {
+      const token = await user?.getIdToken();
+      const res = await fetch(`${API_BASE_URL}/api/users/skills`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-User-ID': user?.uid || '', 
+          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify(skillArray)
       });
 
       if (!res.ok) throw new Error('Failed to update skills');
 
-      alert('Profile Updated! Matching engine refreshing...');
       onClose();
-      window.location.reload(); // Reload to see new matches
+      if (onSave) onSave();
       
     } catch (error) {
       console.error(error);
-      alert('Error updating profile');
     } finally {
       setIsLoading(false);
     }

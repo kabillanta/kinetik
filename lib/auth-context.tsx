@@ -7,6 +7,7 @@ import {
   useState,
   ReactNode,
 } from "react";
+import { API_BASE_URL } from "@/lib/api-config";
 import {
   onAuthStateChanged,
   User,
@@ -23,10 +24,15 @@ export interface UserProfile {
   email: string | null;
   displayName: string | null;
   role: "volunteer" | "organizer" | null;
+  headline?: string;
   bio: string;
   location: string;
   skills: string[];
   imageUrl?: string;
+  portfolioUrl?: string;
+  linkedInUrl?: string;
+  githubUrl?: string;
+  availability?: string;
   onboardingCompleted: boolean;
 }
 
@@ -46,51 +52,105 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [profileFetchDone, setProfileFetchDone] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
 
   const fetchProfile = async (uid: string) => {
+    setProfileFetchDone(false);
     try {
-      const docRef = doc(db, "users", uid);
-      const docSnap = await getDoc(docRef);
-      if (docSnap.exists()) {
-        const profile = docSnap.data() as UserProfile;
+      const token = await auth.currentUser?.getIdToken();
+
+      const res = await fetch(`${API_BASE_URL}/api/users/${uid}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const profile = {
+          uid: data.uid,
+          displayName: data.name,
+          email: data.email,
+          role: data.role,
+          skills: data.skills || [],
+          imageUrl: data.photo_url,
+          bio: "",
+          location: "",
+          onboardingCompleted: true, // In Neo4j = already onboarded
+        } as UserProfile;
+
         setUserProfile(profile);
+        if (data.role) {
+          localStorage.setItem("kinetik_user_role", data.role);
+        }
+        setProfileFetchDone(true);
         return profile;
+      } else if (res.status === 404) {
+        // User not in Neo4j — check Firestore as fallback
+        const userDoc = await getDoc(doc(db, "users", uid));
+        if (userDoc.exists()) {
+          const data = userDoc.data();
+          if (data.onboardingCompleted) {
+            const profile = {
+              uid,
+              email: data.email,
+              displayName: data.displayName,
+              role: data.role,
+              bio: data.bio || "",
+              location: data.location || "",
+              skills: data.skills || [],
+              onboardingCompleted: true,
+            } as UserProfile;
+            setUserProfile(profile);
+            if (data.role) {
+              localStorage.setItem("kinetik_user_role", data.role);
+            }
+            setProfileFetchDone(true);
+            return profile;
+          }
+        }
+        // User not in Neo4j AND not in Firestore (or not onboarded) — genuinely new
+        setProfileFetchDone(true);
+        return null;
       }
+      // Other HTTP errors (500, 503, etc.) — backend problem, don't redirect
+      setProfileFetchDone(false);
       return null;
     } catch (e) {
       console.error("Error fetching profile", e);
+      // Network/fetch error — don't redirect to onboarding
+      setProfileFetchDone(false);
       return null;
     }
   };
 
+  // Auth listener — runs once on mount
   useEffect(() => {
-    // Listen for state changes (login/logout)
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       setUser(currentUser);
 
       if (currentUser) {
-        // Fetch or wait for profile creation
-        const profile = await fetchProfile(currentUser.uid);
-        if (
-          profile &&
-          !profile.onboardingCompleted &&
-          !pathname.includes("onboarding")
-        ) {
-          router.push("/onboarding");
-        } else if (!profile && !pathname.includes("onboarding")) {
-          // If they don't even have a document yet
-          router.push("/onboarding");
-        }
+        await fetchProfile(currentUser.uid);
       } else {
         setUserProfile(null);
+        setProfileFetchDone(false);
       }
 
       setLoading(false);
     });
     return () => unsubscribe();
-  }, [pathname, router]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Onboarding redirect — only fires when we KNOW the profile status
+  useEffect(() => {
+    if (loading || !user || !profileFetchDone) return;
+
+    const needsOnboarding = !userProfile || !userProfile.onboardingCompleted;
+
+    if (needsOnboarding && !pathname.includes("onboarding")) {
+      router.push("/onboarding");
+    }
+  }, [userProfile, pathname, loading, user, router, profileFetchDone]);
 
   const refreshProfile = async () => {
     if (user) {
