@@ -84,6 +84,8 @@ def get_organizer_dashboard(user_id: str, current_user: str = Depends(get_curren
             "applications": applications,
             "recent_events": active_events_list
         }
+    except HTTPException:
+        raise
     except Exception as e:
         print("db error:", str(e))
         return {"stats": {"active_events": 0, "pending_applications": 0, "total_volunteers": 0}, "applications": []}
@@ -120,6 +122,8 @@ def get_organizer_events(user_id: str, current_user: str = Depends(get_current_u
                     "volunteers_filled": r["volunteers_filled"]
                 })
             return {"events": events}
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -153,5 +157,7 @@ def get_organizer_analytics(user_id: str, current_user: str = Depends(get_curren
             if result:
                 return {"stats": result[0]}
             return {"stats": {"total_volunteers": 0, "volunteer_hours": 0, "completed_events": 0, "satisfaction": 0}}
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

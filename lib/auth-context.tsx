@@ -117,8 +117,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return null;
     } catch (e) {
       console.error("Error fetching profile", e);
-      // Network/fetch error — don't redirect to onboarding
-      setProfileFetchDone(false);
+      // Even if Firestore fails, we MUST tell the rest of the app we tried, otherwise it spins infinitely.
+      setProfileFetchDone(true);
       return null;
     }
   };

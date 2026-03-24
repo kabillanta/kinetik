@@ -57,6 +57,8 @@ async def create_or_sync_user(payload: UserSyncPayload, current_user: str = Depe
                         bio=payload.bio, 
                         location=payload.location)
         return {"status": "success", "message": "User synced successfully"}
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
 
@@ -89,6 +91,8 @@ def get_user_profile(user_id: str, current_user: str = Depends(get_current_user)
                 "photo_url": result["photo_url"],
                 "skills": result["skills"]
             }
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -128,11 +132,86 @@ def get_public_user_profile(user_id: str):
                 "events_completed": result["events_completed"],
                 "impact_hours": result["impact_hours"]
             }
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 class SkillsPayload(BaseModel):
     skills: List[str]
+
+class ProfileUpdatePayload(BaseModel):
+    displayName: Optional[str] = None
+    headline: Optional[str] = None
+    bio: Optional[str] = None
+    location: Optional[str] = None
+    imageUrl: Optional[str] = None
+    skills: Optional[List[str]] = []
+    portfolioUrl: Optional[str] = None
+    linkedInUrl: Optional[str] = None
+    githubUrl: Optional[str] = None
+    availability: Optional[str] = None
+
+@router.patch("/users/{user_id}")
+async def update_user_profile(user_id: str, payload: ProfileUpdatePayload, current_user: str = Depends(get_current_user)):
+    """Update a user's full profile settings."""
+    if current_user != user_id:
+        raise HTTPException(status_code=403, detail="Forbidden")
+        
+    driver = get_db()
+    if not driver:
+        raise HTTPException(status_code=503, detail="Database connection failed")
+        
+    query = """
+    MATCH (u:User {id: $user_id})
+    SET u.name = coalesce($displayName, u.name),
+        u.headline = coalesce($headline, u.headline),
+        u.bio = coalesce($bio, u.bio),
+        u.location = coalesce($location, u.location),
+        u.photo_url = coalesce($imageUrl, u.photo_url),
+        u.portfolio_url = coalesce($portfolioUrl, u.portfolio_url),
+        u.linkedin_url = coalesce($linkedInUrl, u.linkedin_url),
+        u.github_url = coalesce($githubUrl, u.github_url),
+        u.availability = coalesce($availability, u.availability)
+        
+    WITH u
+    OPTIONAL MATCH (u)-[r:HAS_SKILL]->()
+    DELETE r
+    
+    WITH u
+    UNWIND (CASE WHEN size($skills) = 0 THEN [null] ELSE $skills END) AS skill_name
+    WITH u, skill_name
+    WHERE skill_name IS NOT NULL
+    MERGE (s:Skill {name: skill_name})
+    MERGE (u)-[:HAS_SKILL]->(s)
+    
+    RETURN u.id
+    """
+    
+    try:
+        with driver.session() as session:
+            result = session.run(query, 
+                user_id=user_id,
+                displayName=payload.displayName,
+                headline=payload.headline,
+                bio=payload.bio,
+                location=payload.location,
+                imageUrl=payload.imageUrl,
+                portfolioUrl=payload.portfolioUrl,
+                linkedInUrl=payload.linkedInUrl,
+                githubUrl=payload.githubUrl,
+                availability=payload.availability,
+                skills=[s.strip().title() for s in payload.skills if s.strip()] if payload.skills else []
+            ).single()
+            
+            if not result:
+                raise HTTPException(status_code=404, detail="User not found")
+                
+        return {"status": "success", "message": "Profile updated successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/users/skills")
 async def update_user_skills(skills: List[str] = Body(...), user_id: str = Depends(get_current_user)):
@@ -166,6 +245,8 @@ async def update_user_skills(skills: List[str] = Body(...), user_id: str = Depen
         with driver.session() as session:
             session.run(query, user_id=user_id, skills=[s.strip().title() for s in skills if s.strip()])
         return {"status": "success", "message": "Skills updated successfully", "skills": skills}
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
 
@@ -189,6 +270,8 @@ def get_user_notifications(user_id: str, current_user: str = Depends(get_current
         with driver.session() as session:
             res = session.run(query, user_id=user_id).data()
             return {"notifications": res}
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -210,5 +293,7 @@ def mark_notification_read(notif_id: str, current_user: str = Depends(get_curren
             if not res:
                 raise HTTPException(status_code=404, detail="Notification not found")
             return {"status": "success"}
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

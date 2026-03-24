@@ -9,16 +9,18 @@ load_dotenv()
 # --- Firebase Admin Setup ---
 try:
     cred_path = os.getenv("FIREBASE_CREDENTIALS")
+    override_project_id = os.getenv("NEXT_PUBLIC_FIREBASE_PROJECT_ID", "kinetik-1234")
+    
     if cred_path and os.path.exists(cred_path):
         cred = credentials.Certificate(cred_path)
         firebase_admin.initialize_app(cred)
         print(f"Firebase Admin initialized with credentials from {cred_path}")
     else:
         try:
-            firebase_admin.initialize_app()
-            print("Firebase Admin initialized with default credentials")
-        except Exception:
-            print("Warning: Firebase Admin could not be initialized. Auth verification may fail.")
+            firebase_admin.initialize_app(options={"projectId": override_project_id})
+            print(f"Firebase Admin initialized with forced projectId: {override_project_id}")
+        except Exception as e:
+            print(f"Warning: Firebase Admin could not be initialized. Auth verification may fail. Error: {e}")
 except ValueError:
     # App already initialized
     pass

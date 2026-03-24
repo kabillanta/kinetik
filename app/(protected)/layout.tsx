@@ -18,6 +18,7 @@ import {
   Bell,
 } from "lucide-react";
 import React from "react";
+import Link from "next/link";
 
 export default function ProtectedLayout({
   children,
@@ -194,11 +195,12 @@ export default function ProtectedLayout({
         <div className="p-4 border-t border-black/[0.04]">
           <div className="flex items-center gap-3 rounded-2xl bg-white p-3 border border-black/[0.04] shadow-sm">
             <div className="h-10 w-10 rounded-full bg-gradient-to-tr from-zinc-200 to-zinc-300 flex items-center justify-center flex-shrink-0 overflow-hidden">
-              {userProfile?.imageUrl ? (
+              {userProfile?.imageUrl || user?.photoURL ? (
                 <img
-                  src={userProfile.imageUrl}
+                  src={userProfile?.imageUrl || user?.photoURL || ""}
                   alt="Profile"
                   className="h-full w-full object-cover"
+                  referrerPolicy="no-referrer"
                 />
               ) : (
                 <span className="font-semibold text-zinc-600">
@@ -309,7 +311,7 @@ export default function ProtectedLayout({
 // Simple Nav Item Component
 function NavItem({ href, icon, label, active }: any) {
   return (
-    <a
+    <Link
       href={href}
       className={`flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-medium transition-all duration-200 ${
         active
@@ -319,14 +321,14 @@ function NavItem({ href, icon, label, active }: any) {
     >
       {React.cloneElement(icon, { className: "h-4 w-4" })}
       {label}
-    </a>
+    </Link>
   );
 }
 
 // Mobile Bottom Nav Item
 function MobileNavItem({ href, icon, label, active }: any) {
   return (
-    <a
+    <Link
       href={href}
       className={`flex flex-col items-center gap-1 px-3 py-1.5 rounded-xl transition-all ${
         active
@@ -336,6 +338,6 @@ function MobileNavItem({ href, icon, label, active }: any) {
     >
       {React.cloneElement(icon, { className: "h-5 w-5" })}
       <span className={`text-[10px] font-semibold ${active ? "text-black" : ""}`}>{label}</span>
-    </a>
+    </Link>
   );
 }

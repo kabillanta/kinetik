@@ -31,6 +31,8 @@ def get_volunteer_dashboard(user_id: str, current_user: str = Depends(get_curren
             if result:
                 return {"stats": result[0]}
             return {"stats": {"reputation_score": 850, "events_joined": 0, "impact_hours": 0}}
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -67,5 +69,7 @@ def get_user_applications(user_id: str, current_user: str = Depends(get_current_
                     "status": r["status"] or "PENDING"
                 })
         return {"applications": apps}
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

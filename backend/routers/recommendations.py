@@ -67,6 +67,8 @@ def get_user_event_recommendations(
                 })
             
         return {"data": recommendations}
+    except HTTPException:
+        raise
     except Exception as e:
         print(f"Error fetching recommendations: {e}")
         return {"data": []}

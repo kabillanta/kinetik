@@ -62,6 +62,8 @@ async def create_event(request: Request, event: EventCreate, user_id: str = Depe
                         date=date,
                         skills=[s.strip().title() for s in skills if s.strip()])
         return {"status": "success", "event_id": event_id, "message": "Event created successfully"}
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
 
@@ -105,6 +107,8 @@ def get_event_detail(event_id: str, current_user: str = Depends(get_current_user
             }
     except HTTPException:
         raise
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -128,6 +132,8 @@ def delete_event(event_id: str, current_user: str = Depends(get_current_user)):
             if not result or result["deleted"] == 0:
                 raise HTTPException(status_code=404, detail="Event not found or unauthorized")
             return {"status": "success", "message": "Event deleted"}
+    except HTTPException:
+        raise
     except HTTPException:
         raise
     except Exception as e:
@@ -167,6 +173,8 @@ async def apply_to_event(event_id: str, request: Request, user_id: str = Depends
         return {"status": "success", "message": "Successfully applied to event"}
     except HTTPException:
         raise
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -188,6 +196,8 @@ def withdraw_application(event_id: str, current_user: str = Depends(get_current_
             if not result or result["deleted"] == 0:
                 raise HTTPException(status_code=404, detail="Application not found")
             return {"status": "success", "message": "Application withdrawn"}
+    except HTTPException:
+        raise
     except HTTPException:
         raise
     except Exception as e:
@@ -230,6 +240,8 @@ async def update_application_status(event_id: str, volunteer_id: str, request: R
             if not result:
                 raise HTTPException(status_code=404, detail="Application not found or unauthorized")
             return {"status": "success", "new_status": result[0]["new_status"]}
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -251,5 +263,7 @@ def complete_event(event_id: str, current_user: str = Depends(get_current_user))
             if not result:
                 raise HTTPException(status_code=404, detail="Event not found or unauthorized")
             return {"status": "success", "new_status": result[0]["new_status"]}
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
