@@ -23,7 +23,7 @@ export default function ApplicationsPage() {
       try {
         const token = await user.getIdToken();
 
-        const res = await fetch(`${API_BASE_URL}/api/users/${user.uid}/applications`, {
+        const res = await fetch(`${API_BASE_URL}/api/volunteers/${user.uid}/applications`, {
           headers: {
             Authorization: `Bearer ${token}`,
           }

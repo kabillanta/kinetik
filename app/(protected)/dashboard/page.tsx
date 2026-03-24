@@ -83,7 +83,7 @@ const VolunteerDashboard = ({ user }: { user: User }) => {
         const recRes = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
         if (recRes.ok) {
           const d = await recRes.json();
-          setEvents(d.recommendations || []);
+          setEvents(d.data || []);
         }
       } catch (err) {
         console.error("Dashboard events fetch error:", err);
