@@ -16,13 +16,24 @@ app = FastAPI(title="Kinetik API", description="Backend for the Kinetik Voluntee
 
 # CORS Configuration
 raw_origins = os.getenv("CORS_ORIGINS", "http://localhost:3000")
-CORS_ORIGINS = [o.strip() for o in raw_origins.split(",") if o.strip()]
+# Normalize: strip spaces and trailing slashes
+CORS_ORIGINS = [o.strip().rstrip("/") for o in raw_origins.split(",") if o.strip()]
 
 # Support '*' for development/testing if explicitly set
 if "*" in CORS_ORIGINS:
     allow_origins = ["*"]
 else:
-    allow_origins = CORS_ORIGINS
+    # Proactively add both variants just in case, though standard Origin header has no slash
+    allow_origins = []
+    for o in CORS_ORIGINS:
+        allow_origins.append(o)
+        # Even though browser sends no slash, some clients might. Let's be robust.
+        # allow_origins.append(o + "/") # Actually, standard CORS middleware matches EXACTLY. 
+        # Standard says NO SLASH. Let's stick to no slash.
+    
+    # Let's also ensure localhost:3000 is always allowed for dev if raw_origins is default
+    if not any("localhost:3000" in o for o in allow_origins) and "localhost:3000" in raw_origins:
+        allow_origins.append("http://localhost:3000")
 
 app.add_middleware(
     CORSMiddleware,
