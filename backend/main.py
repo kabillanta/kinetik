@@ -14,10 +14,19 @@ load_dotenv()
 
 app = FastAPI(title="Kinetik API", description="Backend for the Kinetik Volunteering Platform")
 
-CORS_ORIGINS = os.getenv("CORS_ORIGINS", "http://localhost:3000").split(",")
+# CORS Configuration
+raw_origins = os.getenv("CORS_ORIGINS", "http://localhost:3000")
+CORS_ORIGINS = [o.strip() for o in raw_origins.split(",") if o.strip()]
+
+# Support '*' for development/testing if explicitly set
+if "*" in CORS_ORIGINS:
+    allow_origins = ["*"]
+else:
+    allow_origins = CORS_ORIGINS
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[origin.strip() for origin in CORS_ORIGINS],
+    allow_origins=allow_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
