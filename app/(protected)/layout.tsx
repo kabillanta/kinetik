@@ -63,7 +63,7 @@ export default function ProtectedLayout({
     return (
       <div className="flex min-h-screen bg-[#F5F5F7] text-[#1D1D1F] font-sans antialiased selection:bg-blue-200">
         <main className="flex-1 overflow-y-auto relative w-full">
-          <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 pointer-events-none mix-blend-overlay"></div>
+          <div className="absolute inset-0 bg-black/[0.01] pointer-events-none mix-blend-overlay"></div>
           <div className="relative z-10 w-full min-h-screen">{children}</div>
         </main>
       </div>

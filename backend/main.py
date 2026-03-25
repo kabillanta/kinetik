@@ -63,9 +63,9 @@ app.include_router(recommendations.router)
 @app.get("/api/health")
 def health_check():
     if not driver:
-        return {"status": "degraded", "database": "disconnected", "origins": allow_origins}
+        return {"status": "degraded", "database": "disconnected"}
     try:
         driver.verify_connectivity()
-        return {"status": "healthy", "database": "connected", "origins": allow_origins}
+        return {"status": "healthy", "database": "connected"}
     except Exception as e:
-        return {"status": "degraded", "database": f"error: {str(e)}", "origins": allow_origins}
+        return {"status": "degraded", "database": f"error: {str(e)}"}
