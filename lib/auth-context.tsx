@@ -40,7 +40,7 @@ interface AuthContextType {
   user: User | null;
   userProfile: UserProfile | null;
   loading: boolean;
-  signInWithGoogle: () => Promise<void>;
+  signInWithGoogle: () => Promise<any>;
   logout: () => Promise<void>;
   signOut: () => Promise<void>; // Alias for logout
   refreshProfile: () => Promise<void>;
@@ -161,9 +161,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signInWithGoogle = async () => {
     try {
       const provider = new GoogleAuthProvider();
-      await signInWithPopup(auth, provider);
-      // Successful login automatically triggers the useEffect above
-      router.push("/dashboard");
+      const result = await signInWithPopup(auth, provider);
+      return result;
     } catch (error) {
       console.error("Error signing in", error);
       throw error;

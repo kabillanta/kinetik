@@ -24,6 +24,7 @@ export default function LoginPage() {
     setIsLoading(true);
     try {
       await signInWithGoogle();
+      toast("Welcome back!", "success");
       router.push("/dashboard");
     } catch (error) {
       console.error("Login Failed:", error);

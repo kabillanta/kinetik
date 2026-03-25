@@ -17,6 +17,7 @@ import { useAuth } from "@/lib/auth-context";
 import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { API_BASE_URL } from "@/lib/api-config";
+import { useToast } from "@/components/Toast";
 import { motion } from "framer-motion";
 
 export default function SignupPage() {
@@ -34,6 +35,7 @@ export default function SignupPage() {
 
   const { signInWithGoogle } = useAuth();
   const router = useRouter();
+  const { toast } = useToast();
 
   // --- 1. The Function to Sync with Backend ---
   const saveUserToBackend = async (firebaseUser: any, role: string) => {
@@ -74,11 +76,8 @@ export default function SignupPage() {
     setError(null);
     try {
       // A. Login with Firebase
-      const result = await signInWithGoogle(); // Ensure your auth-context returns the userCredential!
-
-      // Note: If signInWithGoogle doesn't return the user object directly in your context,
-      // you might need to rely on the `auth.currentUser` right after await.
-      const currentUser = auth.currentUser;
+      const result = await signInWithGoogle();
+      const currentUser = result.user;
 
       if (currentUser) {
         // B. Save to Database
@@ -86,6 +85,8 @@ export default function SignupPage() {
         
         // C. Save role locally
         localStorage.setItem("kinetik_user_role", selectedRole);
+
+        toast("Welcome to KinetiK!", "success");
       }
 
       router.push("/dashboard");
@@ -123,6 +124,7 @@ export default function SignupPage() {
       // D. Save role locally for immediate dashboard access
       localStorage.setItem("kinetik_user_role", selectedRole);
 
+      toast("Account created successfully!", "success");
       router.push("/dashboard");
     } catch (err: any) {
       console.error(err);
