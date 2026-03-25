@@ -9,23 +9,24 @@ import { useToast } from "@/components/Toast";
 import { motion } from "framer-motion";
 
 export default function LoginPage() {
-  const { signInWithGoogle, user, userProfile, loading } = useAuth();
+  const { signInWithGoogle, user, userProfile, loading, profileFetchDone } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
 
   // Redirect logged-in users based on onboarding status
+  // CRITICAL: Wait for profileFetchDone to avoid race condition
   useEffect(() => {
-    if (!loading && user && userProfile !== undefined) {
-      // If profile loaded and onboarding is complete, go to dashboard
-      // Otherwise auth-context will redirect to onboarding
+    if (!loading && user && profileFetchDone) {
+      // Profile fetch is complete - now we can safely check onboarding status
       if (userProfile?.onboardingCompleted) {
         router.push("/dashboard");
-      } else if (userProfile === null || !userProfile.onboardingCompleted) {
+      } else {
+        // Either userProfile is null (new user) or onboardingCompleted is false
         router.push("/onboarding");
       }
     }
-  }, [user, userProfile, loading, router]);
+  }, [user, userProfile, loading, profileFetchDone, router]);
 
   const handleGoogleLogin = async () => {
     setIsLoading(true);

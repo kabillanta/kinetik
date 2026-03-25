@@ -40,6 +40,7 @@ interface AuthContextType {
   user: User | null;
   userProfile: UserProfile | null;
   loading: boolean;
+  profileFetchDone: boolean;
   signInWithGoogle: () => Promise<any>;
   logout: () => Promise<void>;
   signOut: () => Promise<void>; // Alias for logout
@@ -222,6 +223,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         user,
         userProfile,
         loading,
+        profileFetchDone,
         signInWithGoogle,
         logout,
         signOut,
