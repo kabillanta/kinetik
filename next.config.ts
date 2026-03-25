@@ -22,6 +22,7 @@ const nextConfig: NextConfig = {
       "wss://*.firebaseio.com",
       "https://*.identitytoolkit.googleapis.com",
       apiOrigin,
+      "https://*.run.app", // Safety net for Cloud Run
       "http://localhost:*", // Keep for local dev
     ].join(" ");
 

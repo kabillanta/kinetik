@@ -87,5 +87,5 @@ jobs:
           NEO4J_URI=${{ secrets.NEO4J_URI }}
           NEO4J_USER=${{ secrets.NEO4J_USERNAME }}
           NEO4J_PASSWORD=${{ secrets.NEO4J_PASSWORD }}
-          FIREBASE_PROJECT_ID=kinetik-1234
+          NEXT_PUBLIC_FIREBASE_PROJECT_ID=${{ secrets.NEXT_PUBLIC_FIREBASE_PROJECT_ID }}
           CORS_ORIGINS=${{ secrets.CORS_ORIGINS }}

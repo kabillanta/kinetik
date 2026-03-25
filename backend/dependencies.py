@@ -9,7 +9,7 @@ load_dotenv()
 # --- Firebase Admin Setup ---
 try:
     cred_path = os.getenv("FIREBASE_CREDENTIALS")
-    override_project_id = os.getenv("NEXT_PUBLIC_FIREBASE_PROJECT_ID", "kinetik-1234")
+    override_project_id = os.getenv("NEXT_PUBLIC_FIREBASE_PROJECT_ID") or os.getenv("FIREBASE_PROJECT_ID") or "kinetik-1234"
     
     if cred_path and os.path.exists(cred_path):
         cred = credentials.Certificate(cred_path)

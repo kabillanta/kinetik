@@ -163,7 +163,7 @@ async def update_user_profile(user_id: str, payload: ProfileUpdatePayload, curre
         raise HTTPException(status_code=503, detail="Database connection failed")
         
     query = """
-    MATCH (u:User {id: $user_id})
+    MERGE (u:User {id: $user_id})
     SET u.name = coalesce($displayName, u.name),
         u.headline = coalesce($headline, u.headline),
         u.bio = coalesce($bio, u.bio),
@@ -172,7 +172,8 @@ async def update_user_profile(user_id: str, payload: ProfileUpdatePayload, curre
         u.portfolio_url = coalesce($portfolioUrl, u.portfolio_url),
         u.linkedin_url = coalesce($linkedInUrl, u.linkedin_url),
         u.github_url = coalesce($githubUrl, u.github_url),
-        u.availability = coalesce($availability, u.availability)
+        u.availability = coalesce($availability, u.availability),
+        u.updated_at = datetime()
         
     WITH u
     OPTIONAL MATCH (u)-[r:HAS_SKILL]->()
