@@ -12,8 +12,11 @@ import {
   MapPin,
   Sparkles,
   AlertCircle,
+  CheckCircle2,
+  Loader2,
 } from "lucide-react";
 import { API_BASE_URL } from "@/lib/api-config";
+import { motion, AnimatePresence } from "framer-motion";
 
 export default function OnboardingPage() {
   const router = useRouter();
@@ -104,7 +107,7 @@ export default function OnboardingPage() {
           body: JSON.stringify(skills)
         });
       } catch (backendErr) {
-        console.warn('Failed to sync with Neo4j backend — user saved to Firestore only', backendErr);
+        console.warn('Failed to sync with Neo4j backend: user saved to Firestore only', backendErr);
       }
 
       await refreshProfile();
@@ -120,242 +123,282 @@ export default function OnboardingPage() {
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-[#F5F5F7] flex items-center justify-center p-6">
-        <div className="h-8 w-8 rounded-full border-2 border-blue-600 border-t-transparent animate-spin" />
+      <div className="min-h-screen bg-white flex items-center justify-center p-6">
+        <div className="h-10 w-10 rounded-full border-4 border-primary border-t-transparent animate-spin" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#F5F5F7] text-[#1D1D1F] font-sans flex flex-col items-center justify-center px-4 py-12 selection:bg-blue-200 fade-in zoom-in-95 duration-500">
-      <div className="w-full max-w-xl">
-        <div className="text-center mb-10">
-          <div className="h-14 w-14 rounded-2xl mx-auto bg-gradient-to-tr from-zinc-800 to-black flex items-center justify-center shadow-lg mb-6">
-            <span className="font-semibold text-white text-3xl leading-none">
-              K
-            </span>
+    <div className="min-h-screen bg-white text-slate-900 font-sans flex flex-col items-center justify-center px-6 py-12 relative overflow-hidden selection:bg-primary/20">
+      {/* Background Decor */}
+      <div className="absolute inset-0 bg-grid opacity-[0.2] pointer-events-none" />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-[800px] w-[800px] bg-primary/5 blur-[120px] rounded-full pointer-events-none animate-blob" />
+      <div className="absolute top-0 right-0 h-[500px] w-[500px] bg-accent/5 blur-[100px] rounded-full pointer-events-none animate-blob" style={{ animationDelay: "3s" }} />
+
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="w-full max-w-2xl relative z-10"
+      >
+        <div className="text-center mb-12">
+          <div className="h-16 w-16 rounded-2xl mx-auto bg-primary flex items-center justify-center shadow-2xl shadow-primary/20 mb-8 transform hover:scale-110 transition-transform cursor-pointer">
+            <span className="font-black text-white text-3xl">K</span>
           </div>
-          <h1 className="text-3xl font-semibold tracking-tight text-black mb-3">
+          <h1 className="text-4xl font-black tracking-tight text-slate-900 mb-4">
             Welcome to KinetiK
           </h1>
-          <p className="text-[#86868B] text-lg font-medium">
-            Let&apos;s set up your profile to personalize your experience.
+          <p className="text-slate-500 text-lg font-medium">
+            Complete your profile to unlock a personalized experience.
           </p>
         </div>
 
-        <div className="bg-white rounded-[2rem] p-8 md:p-12 shadow-sm border border-black/[0.04] relative overflow-hidden">
-          {/* Progress Line */}
-          <div className="absolute top-0 left-0 w-full h-1.5 bg-zinc-100">
-            <div
-              className="h-full bg-black transition-all duration-500 ease-out"
-              style={{ width: `${(step / 3) * 100}%` }}
-            />
+        <div className="glass rounded-[3rem] p-10 md:p-14 shadow-2xl shadow-primary/10 border border-white/40 relative overflow-hidden">
+          {/* Progress Header */}
+          <div className="absolute top-0 left-0 w-full px-14 py-8 flex justify-between items-center pointer-events-none">
+             <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Step {step} of 3</span>
+             <div className="flex gap-1.5">
+                {[1,2,3].map(s => (
+                  <div key={s} className={`h-1.5 rounded-full transition-all duration-500 ${s <= step ? 'w-8 bg-primary' : 'w-2 bg-slate-100'}`} />
+                ))}
+             </div>
           </div>
 
-          {error && (
-            <div className="mb-6 p-4 rounded-xl bg-red-50 border border-red-100 text-red-600 flex items-start gap-3">
-              <AlertCircle className="h-5 w-5 shrink-0 mt-0.5" />
-              <p className="text-sm font-medium">{error}</p>
-            </div>
-          )}
-
-          {/* Step 1: Role */}
-          {step === 1 && (
-            <div className="space-y-6 animate-in slide-in-from-right-8 duration-500">
-              <div>
-                <h2 className="text-2xl font-semibold tracking-tight text-black mb-2">
-                  How do you want to use KinetiK?
-                </h2>
-                <p className="text-[#86868B] text-sm">
-                  You can always switch between modes later.
-                </p>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <button
-                  onClick={() => setRole("volunteer")}
-                  className={`p-6 rounded-2xl border-2 text-left transition-all relative overflow-hidden ${role === "volunteer" ? "border-blue-600 bg-blue-50/50 shadow-md shadow-blue-600/10" : "border-black/[0.08] hover:border-black/[0.15] bg-white"}`}
-                >
-                  {role === "volunteer" && (
-                    <div className="absolute top-4 right-4 h-3 w-3 rounded-full bg-blue-600" />
-                  )}
-                  <UserCheck
-                    className={`h-8 w-8 mb-4 ${role === "volunteer" ? "text-blue-600" : "text-zinc-400"}`}
-                  />
-                  <h3 className="font-semibold text-black text-lg mb-1">
-                    I want to volunteer
-                  </h3>
-                  <p className="text-[#86868B] text-sm font-medium">
-                    Find events matching my skills and make an impact.
-                  </p>
-                </button>
-
-                <button
-                  onClick={() => setRole("organizer")}
-                  className={`p-6 rounded-2xl border-2 text-left transition-all relative overflow-hidden ${role === "organizer" ? "border-blue-600 bg-blue-50/50 shadow-md shadow-blue-600/10" : "border-black/[0.08] hover:border-black/[0.15] bg-white"}`}
-                >
-                  {role === "organizer" && (
-                    <div className="absolute top-4 right-4 h-3 w-3 rounded-full bg-blue-600" />
-                  )}
-                  <Briefcase
-                    className={`h-8 w-8 mb-4 ${role === "organizer" ? "text-blue-600" : "text-zinc-400"}`}
-                  />
-                  <h3 className="font-semibold text-black text-lg mb-1">
-                    I am an organizer
-                  </h3>
-                  <p className="text-[#86868B] text-sm font-medium">
-                    Create events, find talent, and track our impact.
-                  </p>
-                </button>
-              </div>
-
-              <button
-                disabled={!role}
-                onClick={() => setStep(2)}
-                className="w-full mt-8 py-4 rounded-xl bg-black text-white font-semibold disabled:opacity-50 disabled:cursor-not-allowed hover:bg-zinc-800 transition-all flex items-center justify-center gap-2"
+          <div className="mt-8">
+            {error && (
+              <motion.div 
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                className="mb-8 p-5 rounded-2xl bg-red-50 border border-red-100 text-red-600 flex items-start gap-4 shadow-xl shadow-red-500/5"
               >
-                Continue <ArrowRight className="h-4 w-4" />
-              </button>
-            </div>
-          )}
+                <AlertCircle className="h-5 w-5 shrink-0 mt-0.5" />
+                <p className="text-sm font-bold">{error}</p>
+              </motion.div>
+            )}
 
-          {/* Step 2: Info */}
-          {step === 2 && (
-            <div className="space-y-6 animate-in slide-in-from-right-8 duration-500">
-              <div>
-                <h2 className="text-2xl font-semibold tracking-tight text-black mb-2">
-                  Tell us a bit about yourself
-                </h2>
-                <p className="text-[#86868B] text-sm">
-                  This helps us{" "}
-                  {role === "volunteer"
-                    ? "find the best opportunities for you"
-                    : "connect with incredible talent"}
-                  .
-                </p>
-              </div>
-
-              <div className="space-y-5">
-                <div>
-                  <label className="block text-sm font-semibold text-black mb-2">
-                    Short Bio
-                  </label>
-                  <textarea
-                    value={bio}
-                    onChange={(e) => setBio(e.target.value)}
-                    placeholder="I&apos;m a passionate developer looking to help non-profits with their websites..."
-                    className="w-full p-4 rounded-xl bg-zinc-50 border border-black/[0.08] focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all resize-none h-32 text-black font-medium text-sm"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold text-black mb-2">
-                    City/Location
-                  </label>
-                  <div className="relative">
-                    <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-zinc-400" />
-                    <input
-                      type="text"
-                      value={location}
-                      onChange={(e) => setLocation(e.target.value)}
-                      placeholder="e.g. San Francisco, CA"
-                      className="w-full pl-12 pr-4 py-4 rounded-xl bg-zinc-50 border border-black/[0.08] focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all text-black font-medium text-sm"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex gap-4 mt-8">
-                <button
-                  onClick={() => setStep(1)}
-                  className="px-6 py-4 rounded-xl bg-zinc-100 text-black font-semibold hover:bg-zinc-200 transition-all"
+            <AnimatePresence mode="wait">
+              {/* Step 1: Role */}
+              {step === 1 && (
+                <motion.div 
+                  key="step1"
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  className="space-y-8"
                 >
-                  Back
-                </button>
-                <button
-                  disabled={!bio.trim() || !location.trim()}
-                  onClick={() => setStep(3)}
-                  className="flex-1 py-4 rounded-xl bg-black text-white font-semibold disabled:opacity-50 disabled:cursor-not-allowed hover:bg-zinc-800 transition-all flex items-center justify-center gap-2"
-                >
-                  Continue <ArrowRight className="h-4 w-4" />
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Step 3: Skills */}
-          {step === 3 && (
-            <div className="space-y-6 animate-in slide-in-from-right-8 duration-500">
-              <div>
-                <h2 className="text-2xl font-semibold tracking-tight text-black mb-2">
-                  What are your superpowers?
-                </h2>
-                <p className="text-[#86868B] text-sm">
-                  Add your skills to improve your AI recommendations.
-                </p>
-              </div>
-
-              <div className="space-y-4">
-                <div>
-                  <div className="relative">
-                    <Sparkles className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-yellow-500 fill-yellow-500/20" />
-                    <input
-                      type="text"
-                      value={currentSkill}
-                      onChange={(e) => setCurrentSkill(e.target.value)}
-                      onKeyDown={handleAddSkill}
-                      onBlur={handleAddSkill}
-                      placeholder="Type a skill and press Enter..."
-                      className="w-full pl-12 pr-4 py-4 rounded-xl bg-zinc-50 border border-black/[0.08] focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all text-black font-medium text-sm"
-                    />
+                  <div className="text-center md:text-left">
+                    <h2 className="text-3xl font-black tracking-tight text-slate-900 mb-3">
+                      How will you use KinetiK?
+                    </h2>
+                    <p className="text-slate-500 font-medium">
+                      You can switch between these roles at any time later.
+                    </p>
                   </div>
-                  <p className="text-xs text-zinc-400 font-medium mt-2 ml-1">
-                    e.g. React, Event Planning, Marketing, Python
-                  </p>
-                </div>
 
-                {skills.length > 0 && (
-                  <div className="flex flex-wrap gap-2 pt-4">
-                    {skills.map((skill) => (
-                      <div
-                        key={skill}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-black text-white text-sm font-medium animate-in zoom-in-50"
-                      >
-                        {skill}
-                        <button
-                          onClick={() => removeSkill(skill)}
-                          className="ml-1 h-4 w-4 rounded-full hover:bg-white/20 flex items-center justify-center transition-colors"
-                        >
-                          &times;
-                        </button>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <button
+                      onClick={() => setRole("volunteer")}
+                      className={`group p-8 rounded-[2rem] border-2 text-left transition-all duration-500 relative overflow-hidden ${role === "volunteer" ? "border-primary bg-white shadow-2xl shadow-primary/10 ring-1 ring-primary/20 scale-[1.02]" : "border-slate-100 bg-white/50 hover:bg-white hover:border-slate-200 hover:shadow-xl"}`}
+                    >
+                      <div className={`h-14 w-14 rounded-2xl flex items-center justify-center mb-6 transition-all duration-500 ${role === "volunteer" ? 'bg-primary text-white rotate-3' : 'bg-slate-50 text-slate-400 group-hover:text-primary group-hover:bg-primary/10'}`}>
+                        <UserCheck className="h-7 w-7" />
                       </div>
-                    ))}
-                  </div>
-                )}
-              </div>
+                      <h3 className="font-bold text-slate-900 text-xl mb-2">
+                        Volunteer
+                      </h3>
+                      <p className="text-slate-500 text-sm font-medium leading-relaxed">
+                        Find events matching your skills and make a real impact.
+                      </p>
+                      {role === "volunteer" && (
+                        <motion.div layoutId="activeRole" className="absolute top-4 right-4"><CheckCircle2 className="h-6 w-6 text-primary" /></motion.div>
+                      )}
+                    </button>
 
-              <div className="flex gap-4 mt-8 pt-4 border-t border-black/[0.04]">
-                <button
-                  onClick={() => setStep(2)}
-                  className="px-6 py-4 rounded-xl bg-zinc-100 text-black font-semibold hover:bg-zinc-200 transition-all"
+                    <button
+                      onClick={() => setRole("organizer")}
+                      className={`group p-8 rounded-[2rem] border-2 text-left transition-all duration-500 relative overflow-hidden ${role === "organizer" ? "border-primary bg-white shadow-2xl shadow-primary/10 ring-1 ring-primary/20 scale-[1.02]" : "border-slate-100 bg-white/50 hover:bg-white hover:border-slate-200 hover:shadow-xl"}`}
+                    >
+                      <div className={`h-14 w-14 rounded-2xl flex items-center justify-center mb-6 transition-all duration-500 ${role === "organizer" ? 'bg-primary text-white -rotate-3' : 'bg-slate-50 text-slate-400 group-hover:text-primary group-hover:bg-primary/10'}`}>
+                        <Briefcase className="h-7 w-7" />
+                      </div>
+                      <h3 className="font-bold text-slate-900 text-xl mb-2">
+                        Organizer
+                      </h3>
+                      <p className="text-slate-500 text-sm font-medium leading-relaxed">
+                        Create events, discover talent, and track project growth.
+                      </p>
+                      {role === "organizer" && (
+                        <motion.div layoutId="activeRole" className="absolute top-4 right-4"><CheckCircle2 className="h-6 w-6 text-primary" /></motion.div>
+                      )}
+                    </button>
+                  </div>
+
+                  <button
+                    disabled={!role}
+                    onClick={() => setStep(2)}
+                    className="w-full mt-4 h-16 rounded-2xl bg-slate-900 text-white font-black text-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-800 shadow-2xl shadow-slate-900/20 transition-all flex items-center justify-center gap-3 active:scale-[0.98]"
+                  >
+                    Continue <ArrowRight className="h-5 w-5 translate-y-[1px]" />
+                  </button>
+                </motion.div>
+              )}
+
+              {/* Step 2: Info */}
+              {step === 2 && (
+                <motion.div 
+                  key="step2"
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  className="space-y-8"
                 >
-                  Back
-                </button>
-                <button
-                  disabled={isLoading || skills.length === 0}
-                  onClick={completeOnboarding}
-                  className="flex-1 py-4 rounded-xl bg-blue-600 text-white font-semibold disabled:opacity-50 disabled:cursor-not-allowed hover:bg-blue-500 shadow-md shadow-blue-600/20 transition-all flex items-center justify-center gap-2"
+                  <div className="text-center md:text-left">
+                    <h2 className="text-3xl font-black tracking-tight text-slate-900 mb-3">
+                      About yourself
+                    </h2>
+                    <p className="text-slate-500 font-medium">
+                      Tell us what drives you.
+                    </p>
+                  </div>
+
+                  <div className="space-y-6">
+                    <div>
+                      <label className="text-xs font-black text-slate-400 uppercase tracking-widest mb-3 block ml-1">
+                        Short Bio
+                      </label>
+                      <textarea
+                        value={bio}
+                        onChange={(e) => setBio(e.target.value)}
+                        placeholder="I am a passionate builder..."
+                        className="w-full p-6 rounded-[1.5rem] bg-slate-50/50 border border-slate-100 focus:border-primary focus:ring-4 focus:ring-primary/5 outline-none transition-all resize-none h-40 text-slate-900 font-bold text-base shadow-inner"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs font-black text-slate-400 uppercase tracking-widest mb-3 block ml-1">
+                        Location
+                      </label>
+                      <div className="relative">
+                        <MapPin className="absolute left-6 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-300" />
+                        <input
+                          type="text"
+                          value={location}
+                          onChange={(e) => setLocation(e.target.value)}
+                          placeholder="City, Country"
+                          className="w-full pl-16 pr-6 h-16 rounded-[1.5rem] bg-slate-50/50 border border-slate-100 focus:border-primary focus:ring-4 focus:ring-primary/5 outline-none transition-all text-slate-900 font-bold text-base shadow-inner"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-4">
+                    <button
+                      onClick={() => setStep(1)}
+                      className="px-8 h-16 rounded-2xl bg-slate-50 text-slate-500 font-bold hover:bg-slate-100 hover:text-slate-900 transition-all active:scale-[0.98]"
+                    >
+                      Back
+                    </button>
+                    <button
+                      disabled={!bio.trim() || !location.trim()}
+                      onClick={() => setStep(3)}
+                      className="flex-1 h-16 rounded-2xl bg-slate-900 text-white font-black text-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-800 shadow-2xl shadow-slate-900/20 transition-all flex items-center justify-center gap-3 active:scale-[0.98]"
+                    >
+                      Continue <ArrowRight className="h-5 w-5 translate-y-[1px]" />
+                    </button>
+                  </div>
+                </motion.div>
+              )}
+
+              {/* Step 3: Skills */}
+              {step === 3 && (
+                <motion.div 
+                  key="step3"
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  className="space-y-8"
                 >
-                  {isLoading ? (
-                    <div className="h-5 w-5 rounded-full border-2 border-white/30 border-t-white animate-spin" />
-                  ) : (
-                    "Complete Profile"
-                  )}
-                </button>
-              </div>
-            </div>
-          )}
+                  <div className="text-center md:text-left">
+                    <h2 className="text-3xl font-black tracking-tight text-slate-900 mb-3">
+                      Your expertise
+                    </h2>
+                    <p className="text-slate-500 font-medium">
+                      Add your skills to find the perfect projects.
+                    </p>
+                  </div>
+
+                  <div className="space-y-6">
+                    <div>
+                      <div className="relative">
+                        <Sparkles className="absolute left-6 top-1/2 -translate-y-1/2 h-5 w-5 text-accent" />
+                        <input
+                          type="text"
+                          value={currentSkill}
+                          onChange={(e) => setCurrentSkill(e.target.value)}
+                          onKeyDown={handleAddSkill}
+                          onBlur={handleAddSkill}
+                          placeholder="Type or select skills..."
+                          className="w-full pl-16 pr-6 h-16 rounded-[1.5rem] bg-slate-50/50 border border-slate-100 focus:border-primary focus:ring-4 focus:ring-primary/5 outline-none transition-all text-slate-900 font-bold text-base shadow-inner"
+                        />
+                      </div>
+                      <div className="flex flex-wrap gap-2 mt-4 ml-1">
+                        {["React", "Python", "Design", "Marketing", "Event Planning"].map(s => (
+                          <button key={s} onClick={() => !skills.includes(s) && setSkills([...skills, s])} className="text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full bg-slate-50 text-slate-400 hover:bg-primary/10 hover:text-primary transition-colors border border-slate-100">
+                             + {s}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="min-h-[120px] p-6 rounded-[1.5rem] border-2 border-dashed border-slate-100 flex flex-wrap gap-3 items-start content-start">
+                      {skills.length > 0 ? (
+                        skills.map((skill) => (
+                          <motion.div
+                            layout
+                            initial={{ scale: 0.8, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            key={skill}
+                            className="flex items-center gap-2.5 px-5 py-2.5 rounded-xl bg-slate-900 text-white text-sm font-black shadow-lg shadow-slate-900/10 group animate-in zoom-in-50"
+                          >
+                            {skill}
+                            <button
+                              onClick={() => removeSkill(skill)}
+                              className="h-5 w-5 rounded-full bg-white/10 flex items-center justify-center hover:bg-red-500 transition-colors"
+                            >
+                              &times;
+                            </button>
+                          </motion.div>
+                        ))
+                      ) : (
+                        <p className="text-slate-400 text-sm font-medium w-full text-center mt-6 uppercase tracking-widest text-[10px]">No skills added yet</p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex gap-4 mt-12 pt-10 border-t border-slate-100">
+                    <button
+                      onClick={() => setStep(2)}
+                      className="px-8 h-16 rounded-2xl bg-slate-50 text-slate-500 font-bold hover:bg-slate-100 hover:text-slate-900 transition-all active:scale-[0.98]"
+                    >
+                      Back
+                    </button>
+                    <button
+                      disabled={isLoading || skills.length === 0}
+                      onClick={completeOnboarding}
+                      className="flex-1 h-16 rounded-2xl bg-primary text-white font-black text-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-primary/90 shadow-2xl shadow-primary/20 transition-all flex items-center justify-center gap-3 active:scale-[0.98]"
+                    >
+                      {isLoading ? (
+                        <Loader2 className="h-6 w-6 animate-spin" />
+                      ) : (
+                        "Complete Setup"
+                      )}
+                    </button>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 }
