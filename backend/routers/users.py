@@ -65,12 +65,14 @@ async def create_or_sync_user(payload: UserSyncPayload, current_user: str = Depe
 @router.get("/users/{user_id}")
 def get_user_profile(user_id: str, current_user: str = Depends(get_current_user)):
     """
-    Get user profile including role.
+    Get user profile including role. 
+    Self-heals by syncing from Firebase if the Neo4j node is missing.
     """
     driver = get_db()
     if not driver:
         raise HTTPException(status_code=503, detail="Database not available")
 
+    # 1. Try to get from Neo4j
     query = """
     MATCH (u:User {id: $user_id})
     OPTIONAL MATCH (u)-[:HAS_SKILL]->(s:Skill)
@@ -80,6 +82,31 @@ def get_user_profile(user_id: str, current_user: str = Depends(get_current_user)
     try:
         with driver.session() as session:
             result = session.run(query, user_id=user_id).single()
+            
+            # 2. If not found in Neo4j, but the caller is the user themselves, auto-sync
+            if not result and current_user == user_id:
+                try:
+                    from firebase_admin import auth as fb_auth
+                    fb_user = fb_auth.get_user(user_id)
+                    
+                    # Merge basic info from Firebase
+                    sync_query = """
+                    MERGE (u:User {id: $uid})
+                    ON CREATE SET u.email = $email,
+                                  u.name = $name,
+                                  u.role = 'volunteer',
+                                  u.photo_url = $photo_url,
+                                  u.created_at = datetime()
+                    RETURN u.id as uid, u.name as name, u.email as email, u.role as role, u.photo_url as photo_url, [] as skills
+                    """
+                    result = session.run(sync_query, 
+                                       uid=user_id, 
+                                       email=fb_user.email, 
+                                       name=fb_user.display_name or fb_user.email.split('@')[0],
+                                       photo_url=fb_user.photo_url or "").single()
+                except Exception as sync_err:
+                    print(f"Auto-sync failed for {user_id}: {sync_err}")
+            
             if not result:
                 raise HTTPException(status_code=404, detail="User not found")
             
