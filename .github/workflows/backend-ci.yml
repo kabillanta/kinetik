@@ -71,14 +71,14 @@ jobs:
 
     - name: 'Build and Push Container'
       run: |
-        docker build -t gcr.io/${{ secrets.GCP_PROJECT_ID }}/kinetik-backend:${{ github.sha }} ./backend
-        docker push gcr.io/${{ secrets.GCP_PROJECT_ID }}/kinetik-backend:${{ github.sha }}
+        docker build -t us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/cloud-run-source-deploy/kinetik-backend:${{ github.sha }} ./backend
+        docker push us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/cloud-run-source-deploy/kinetik-backend:${{ github.sha }}
 
     - name: 'Deploy to Cloud Run'
       uses: 'google-github-actions/deploy-cloudrun@v2'
       with:
         service: 'kinetik-backend'
-        image: 'gcr.io/${{ secrets.GCP_PROJECT_ID }}/kinetik-backend:${{ github.sha }}'
+        image: 'us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/cloud-run-source-deploy/kinetik-backend:${{ github.sha }}'
         region: 'us-central1'
         env_vars: |
           NEO4J_URI=${{ secrets.NEO4J_URI }}
