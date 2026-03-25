@@ -47,6 +47,7 @@ interface AuthContextType {
   setUserProfile: (profile: UserProfile | null) => void;
   setIsTransitioning: (status: boolean) => void;
   isTransitioning: boolean;
+  profileError: string | null;
 }
 
 const AuthContext = createContext<AuthContextType>({} as AuthContextType);
@@ -57,6 +58,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [profileFetchDone, setProfileFetchDone] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
+  const [profileError, setProfileError] = useState<string | null>(null);
   const router = useRouter();
   const pathname = usePathname();
 
@@ -66,6 +68,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (isTransitioning) return userProfile;
     
     setProfileFetchDone(false);
+    setProfileError(null);
     try {
       const token = await auth.currentUser?.getIdToken();
 
@@ -120,13 +123,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setProfileFetchDone(true);
         return null;
       }
-      // Other HTTP errors (500, 503, etc.) — backend problem, don't redirect
-      setProfileFetchDone(false);
+      
+      // Other HTTP errors (500, 503, 403, 401 etc.) — backend problem, don't redirect
+      console.warn(`Backend fetch failed with status ${res.status}`);
+      setProfileError(`Backend error: ${res.status}`);
+      setProfileFetchDone(false); // We are NOT done if there was an error
       return null;
     } catch (e) {
       console.error("Error fetching profile", e);
-      // Even if Firestore fails, we MUST tell the rest of the app we tried, otherwise it spins infinitely.
-      setProfileFetchDone(true);
+      // NETWORK ERROR / CORS BLOCK
+      setProfileError("Network error or CORS block. Check backend availability.");
+      setProfileFetchDone(false); // We are NOT done if there was a network error
       return null;
     }
   };
@@ -164,7 +171,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const isPublicPath = PUBLIC_PATHS.includes(pathname);
 
     // CRITICAL: Respect isTransitioning flag to prevent loop during the final steps
-    if (loading || !user || !profileFetchDone || isTransitioning || isPublicPath) return;
+    // ALSO CRITICAL: Don't redirect if we had a profile error (network/CORS/500)
+    if (loading || !user || !profileFetchDone || isTransitioning || isPublicPath || profileError) return;
 
     const needsOnboarding = !userProfile || !userProfile.onboardingCompleted;
 
@@ -221,6 +229,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUserProfile,
         setIsTransitioning,
         isTransitioning,
+        profileError,
       }}
     >
       {children}
