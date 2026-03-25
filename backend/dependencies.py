@@ -1,5 +1,5 @@
 import os
-from fastapi import Header, HTTPException, Depends
+from fastapi import Header, HTTPException
 import firebase_admin
 from firebase_admin import credentials, auth as firebase_auth
 from dotenv import load_dotenv
