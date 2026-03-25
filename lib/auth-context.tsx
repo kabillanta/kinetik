@@ -158,8 +158,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Onboarding redirect — only fires when we KNOW the profile status
   useEffect(() => {
+    // Whitelist public pages so logging in doesn't immediately "kidnap" the user
+    // if they just want to see the landing page.
+    const PUBLIC_PATHS = ["/", "/login", "/signup"];
+    const isPublicPath = PUBLIC_PATHS.includes(pathname);
+
     // CRITICAL: Respect isTransitioning flag to prevent loop during the final steps
-    if (loading || !user || !profileFetchDone || isTransitioning) return;
+    if (loading || !user || !profileFetchDone || isTransitioning || isPublicPath) return;
 
     const needsOnboarding = !userProfile || !userProfile.onboardingCompleted;
 
