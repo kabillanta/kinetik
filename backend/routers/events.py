@@ -13,7 +13,7 @@ class EventCreate(BaseModel):
     role_needed: str = Field(..., max_length=100)
     location: str = Field(..., max_length=150)
     date: str = Field(..., max_length=100)
-    skills: List[str] = Field(default_factory=list, max_items=20)
+    skills: List[str] = Field(default_factory=list, max_length=20)
 
 @router.post("")
 async def create_event(request: Request, event: EventCreate, user_id: str = Depends(get_current_user)):

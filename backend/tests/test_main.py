@@ -18,4 +18,4 @@ def test_health_check_exists():
     """
     Verifies the app is injectable and routes are defined.
     """
-    assert app.title == "FastAPI" 
+    assert app.title == "Kinetik API"
