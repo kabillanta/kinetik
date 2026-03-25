@@ -42,6 +42,7 @@ async def create_or_sync_user(payload: UserSyncPayload, current_user: str = Depe
         u.photo_url = $photo_url,
         u.bio = $bio,
         u.location = $location,
+        u.onboarding_completed = true,
         u.updated_at = datetime()
     RETURN u.id
     """
@@ -76,7 +77,8 @@ def get_user_profile(user_id: str, current_user: str = Depends(get_current_user)
     query = """
     MATCH (u:User {id: $user_id})
     OPTIONAL MATCH (u)-[:HAS_SKILL]->(s:Skill)
-    RETURN u.id as uid, u.name as name, u.email as email, u.role as role, u.photo_url as photo_url, collect(s.name) as skills
+    RETURN u.id as uid, u.name as name, u.email as email, u.role as role, u.photo_url as photo_url, 
+           u.onboarding_completed as onboarding_completed, collect(s.name) as skills
     """
     
     try:
@@ -95,9 +97,11 @@ def get_user_profile(user_id: str, current_user: str = Depends(get_current_user)
                     ON CREATE SET u.email = $email,
                                   u.name = $name,
                                   u.role = 'volunteer',
+                                  u.onboarding_completed = false,
                                   u.photo_url = $photo_url,
                                   u.created_at = datetime()
-                    RETURN u.id as uid, u.name as name, u.email as email, u.role as role, u.photo_url as photo_url, [] as skills
+                    RETURN u.id as uid, u.name as name, u.email as email, u.role as role, 
+                           u.photo_url as photo_url, u.onboarding_completed as onboarding_completed, [] as skills
                     """
                     result = session.run(sync_query, 
                                        uid=user_id, 
@@ -116,6 +120,7 @@ def get_user_profile(user_id: str, current_user: str = Depends(get_current_user)
                 "email": result["email"],
                 "role": result["role"],
                 "photo_url": result["photo_url"],
+                "onboarding_completed": result["onboarding_completed"],
                 "skills": result["skills"]
             }
     except HTTPException:
@@ -200,6 +205,7 @@ async def update_user_profile(user_id: str, payload: ProfileUpdatePayload, curre
         u.linkedin_url = coalesce($linkedInUrl, u.linkedin_url),
         u.github_url = coalesce($githubUrl, u.github_url),
         u.availability = coalesce($availability, u.availability),
+        u.onboarding_completed = true,
         u.updated_at = datetime()
         
     WITH u

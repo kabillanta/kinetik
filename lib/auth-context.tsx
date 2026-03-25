@@ -86,7 +86,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           imageUrl: data.photo_url,
           bio: data.bio || "",
           location: data.location || "",
-          onboardingCompleted: true, // In Neo4j = already onboarded
+          onboardingCompleted: data.onboarding_completed ?? true, // Respect backend flag
         } as UserProfile;
 
         setUserProfileState(profile);
