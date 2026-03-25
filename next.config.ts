@@ -2,6 +2,29 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   async headers() {
+    const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
+    
+    // Extract origin for CSP (e.g. https://api.example.com)
+    let apiOrigin = "";
+    try {
+      const url = new URL(apiBaseUrl);
+      apiOrigin = url.origin;
+    } catch (e) {
+      apiOrigin = apiBaseUrl;
+    }
+
+    // Define connect-src with the dynamic API origin
+    const connectSrc = [
+      "'self'",
+      "https://*.googleapis.com",
+      "https://*.firebaseio.com",
+      "https://*.firebaseapp.com",
+      "wss://*.firebaseio.com",
+      "https://*.identitytoolkit.googleapis.com",
+      apiOrigin,
+      "http://localhost:*", // Keep for local dev
+    ].join(" ");
+
     return [
       {
         source: "/(.*)",
@@ -26,7 +49,7 @@ const nextConfig: NextConfig = {
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
               "font-src 'self' https://fonts.gstatic.com",
               "img-src 'self' data: https: blob:",
-              "connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://*.firebaseapp.com wss://*.firebaseio.com http://localhost:* https://*.identitytoolkit.googleapis.com",
+              `connect-src ${connectSrc}`,
               "frame-src 'self' https://*.firebaseapp.com https://accounts.google.com",
             ].join("; "),
           },
