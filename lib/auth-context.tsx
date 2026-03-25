@@ -86,7 +86,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           imageUrl: data.photo_url,
           bio: data.bio || "",
           location: data.location || "",
-          onboardingCompleted: data.onboarding_completed ?? true, // Respect backend flag
+          onboardingCompleted: data.onboarding_completed ?? false, // Default to false - require explicit completion
         } as UserProfile;
 
         setUserProfileState(profile);

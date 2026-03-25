@@ -102,9 +102,11 @@ def get_organizer_events(user_id: str, current_user: str = Depends(get_current_u
         
     query = """
     MATCH (o:User {id: $user_id})-[:ORGANIZED]->(e:Event)
-    OPTIONAL MATCH (v:User)-[:APPLIED_FOR]->(e)
+    OPTIONAL MATCH (v:User)-[r:APPLIED_FOR {status: 'ACCEPTED'}]->(e)
+    OPTIONAL MATCH (e)-[:REQUIRES_SKILL]->(s:Skill)
     RETURN e.id AS id, e.title AS title, e.role AS role, e.location AS location, e.status AS status,
-           e.date AS date, count(v) as volunteers_filled
+           e.date AS date, e.volunteers_needed AS volunteers_needed, 
+           count(DISTINCT v) as volunteers_filled, collect(DISTINCT s.name) AS skills
     ORDER BY e.title DESC
     """
     try:
@@ -112,6 +114,8 @@ def get_organizer_events(user_id: str, current_user: str = Depends(get_current_u
             res = session.run(query, user_id=user_id)
             events = []
             for r in res:
+                volunteers_needed = r["volunteers_needed"] or 5
+                volunteers_filled = r["volunteers_filled"] or 0
                 events.append({
                     "id": r["id"],
                     "title": r["title"] or "Untitled Event",
@@ -119,7 +123,9 @@ def get_organizer_events(user_id: str, current_user: str = Depends(get_current_u
                     "location": r["location"],
                     "date": r["date"],
                     "status": r.get("status") or "OPEN",
-                    "volunteers_filled": r["volunteers_filled"]
+                    "volunteersFilled": volunteers_filled,
+                    "volunteersTotal": volunteers_needed,
+                    "skills": r["skills"] or []
                 })
             return {"events": events}
     except HTTPException:

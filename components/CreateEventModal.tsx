@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { X, Loader2, Calendar as CalendarIcon, MapPin, Briefcase, Sparkles, NotebookPen, Target } from 'lucide-react';
+import { X, Loader2, Calendar as CalendarIcon, MapPin, Briefcase, Sparkles, NotebookPen, Target, Users } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 import { API_BASE_URL } from '@/lib/api-config';
 
@@ -22,7 +22,8 @@ export default function CreateEventModal({ isOpen, onClose, onSuccess }: CreateE
     role_needed: '',
     location: '',
     date: '',
-    skills: [] as string[]
+    skills: [] as string[],
+    volunteers_needed: 5
   });
   const [currentSkill, setCurrentSkill] = useState('');
 
@@ -59,7 +60,8 @@ export default function CreateEventModal({ isOpen, onClose, onSuccess }: CreateE
             role_needed: formData.role_needed,
             location: formData.location,
             date: formData.date,
-            skills: formData.skills
+            skills: formData.skills,
+            volunteers_needed: formData.volunteers_needed
         })
       });
 
@@ -192,6 +194,24 @@ export default function CreateEventModal({ isOpen, onClose, onSuccess }: CreateE
                       </div>
 
                       <div>
+                          <label className="flex items-center gap-2 text-sm font-bold text-zinc-800 mb-2">
+                            <Users className="h-4 w-4 text-indigo-500" />
+                            Volunteers Needed
+                          </label>
+                          <input 
+                              type="number" 
+                              required
+                              min={1}
+                              max={500}
+                              placeholder="5"
+                              className="w-full px-5 py-3.5 rounded-2xl bg-white border border-zinc-200/80 focus:border-black focus:ring-2 focus:ring-black/5 outline-none transition-all text-zinc-900 font-medium text-[15px] shadow-sm"
+                              value={formData.volunteers_needed}
+                              onChange={e => setFormData({...formData, volunteers_needed: Math.max(1, parseInt(e.target.value) || 1)})}
+                          />
+                          <p className="text-xs text-zinc-400 mt-1.5 ml-1">How many volunteers do you need for this event?</p>
+                      </div>
+
+                      <div className="md:col-span-2">
                           <label className="flex items-center gap-2 text-sm font-bold text-zinc-800 mb-2">
                             <Sparkles className="h-4 w-4 text-amber-500" />
                             Skills Needed

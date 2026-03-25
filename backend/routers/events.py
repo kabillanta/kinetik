@@ -14,6 +14,7 @@ class EventCreate(BaseModel):
     location: str = Field(..., max_length=150)
     date: str = Field(..., max_length=100)
     skills: List[str] = Field(default_factory=list, max_length=20)
+    volunteers_needed: int = Field(default=5, ge=1, le=500)
 
 @router.post("")
 async def create_event(request: Request, event: EventCreate, user_id: str = Depends(get_current_user)):
@@ -24,6 +25,7 @@ async def create_event(request: Request, event: EventCreate, user_id: str = Depe
     location = event.location
     date = event.date
     skills = event.skills
+    volunteers_needed = event.volunteers_needed
     
     event_id = str(uuid.uuid4())
     
@@ -40,6 +42,7 @@ async def create_event(request: Request, event: EventCreate, user_id: str = Depe
         role: $role_needed,
         location: $location,
         date: $date,
+        volunteers_needed: $volunteers_needed,
         status: 'OPEN'
     })
     CREATE (o)-[:ORGANIZED]->(e)
@@ -60,6 +63,7 @@ async def create_event(request: Request, event: EventCreate, user_id: str = Depe
                         role_needed=role_needed,
                         location=location,
                         date=date,
+                        volunteers_needed=volunteers_needed,
                         skills=[s.strip().title() for s in skills if s.strip()])
         return {"status": "success", "event_id": event_id, "message": "Event created successfully"}
     except HTTPException:
@@ -80,7 +84,7 @@ def get_event_detail(event_id: str, current_user: str = Depends(get_current_user
     OPTIONAL MATCH (e)-[:REQUIRES_SKILL]->(s:Skill)
     OPTIONAL MATCH (v:User)-[:APPLIED_FOR]->(e)
     RETURN e.id AS id, e.title AS title, e.description AS description, e.status AS status,
-           e.role AS role, e.location AS location, e.date AS date,
+           e.role AS role, e.location AS location, e.date AS date, e.volunteers_needed AS volunteers_needed,
            o.name AS organizer_name, o.id AS organizer_id,
            collect(DISTINCT s.name) AS skills,
            count(DISTINCT v) AS applicant_count
@@ -99,6 +103,7 @@ def get_event_detail(event_id: str, current_user: str = Depends(get_current_user
                     "location": result["location"] or "Remote",
                     "date": result["date"] or "TBD",
                     "status": result["status"] or "OPEN",
+                    "volunteers_needed": result.get("volunteers_needed", 5),
                     "organizer_name": result["organizer_name"] or "Unknown",
                     "organizer_id": result["organizer_id"] or "",
                     "skills": result["skills"],

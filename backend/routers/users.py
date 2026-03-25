@@ -14,11 +14,14 @@ class UserSyncPayload(BaseModel):
     photo_url: str = Field(default="", max_length=1000)
     bio: str = Field(default="", max_length=5000)
     location: str = Field(default="", max_length=200)
+    onboarding_completed: bool = Field(default=False)
 
 @router.post("/users")
 async def create_or_sync_user(payload: UserSyncPayload, current_user: str = Depends(get_current_user)):
     """
     Create or update a user from Firebase auth.
+    For new signups, onboarding_completed should be False.
+    After completing onboarding, onboarding_completed should be True.
     """
     if current_user != payload.firebase_uid:
          raise HTTPException(status_code=403, detail="Token UID does not match body UID")
@@ -33,31 +36,50 @@ async def create_or_sync_user(payload: UserSyncPayload, current_user: str = Depe
     driver = get_db()
     if not driver:
         raise HTTPException(status_code=503, detail="Database connection failed")
-        
+    
+    # Use MERGE with ON CREATE and ON MATCH to handle new vs existing users correctly
+    # New users: set onboarding_completed from payload (typically false for signups)
+    # Existing users: only update onboarding_completed if explicitly set to true
     query = """
     MERGE (u:User {id: $uid})
-    SET u.email = $email,
+    ON CREATE SET 
+        u.email = $email,
         u.name = $name,
         u.role = $role,
         u.photo_url = $photo_url,
         u.bio = $bio,
         u.location = $location,
-        u.onboarding_completed = true,
+        u.onboarding_completed = $onboarding_completed,
+        u.created_at = datetime(),
         u.updated_at = datetime()
-    RETURN u.id
+    ON MATCH SET 
+        u.email = $email,
+        u.name = $name,
+        u.role = $role,
+        u.photo_url = $photo_url,
+        u.bio = CASE WHEN $bio <> '' THEN $bio ELSE u.bio END,
+        u.location = CASE WHEN $location <> '' THEN $location ELSE u.location END,
+        u.onboarding_completed = CASE WHEN $onboarding_completed = true THEN true ELSE u.onboarding_completed END,
+        u.updated_at = datetime()
+    RETURN u.id, u.onboarding_completed as onboarding_completed
     """
     
     try:
         with driver.session() as session:
-            session.run(query, 
+            result = session.run(query, 
                         uid=payload.firebase_uid, 
                         email=payload.email, 
                         name=payload.name, 
                         role=payload.role, 
                         photo_url=payload.photo_url, 
                         bio=payload.bio, 
-                        location=payload.location)
-        return {"status": "success", "message": "User synced successfully"}
+                        location=payload.location,
+                        onboarding_completed=payload.onboarding_completed).single()
+        return {
+            "status": "success", 
+            "message": "User synced successfully",
+            "onboarding_completed": result["onboarding_completed"] if result else payload.onboarding_completed
+        }
     except HTTPException:
         raise
     except Exception as e:

@@ -44,6 +44,7 @@ export default function SignupPage() {
       const token = await firebaseUser.getIdToken();
 
       // Send to your Python/FastAPI Backend
+      // Mark onboarding_completed as false for new signups
       const response = await fetch(`${API_BASE_URL}/api/users`, {
         method: "POST",
         headers: {
@@ -56,6 +57,7 @@ export default function SignupPage() {
           name: firebaseUser.displayName || name, // Fallback to state name
           role: role, // The Critical Part!
           photo_url: firebaseUser.photoURL,
+          onboarding_completed: false, // New users need to complete onboarding
         }),
       });
 
@@ -80,7 +82,7 @@ export default function SignupPage() {
       const currentUser = result.user;
 
       if (currentUser) {
-        // B. Save to Database
+        // B. Save to Database (backend will mark onboarding_completed=false for new users)
         await saveUserToBackend(currentUser, selectedRole);
         
         // C. Save role locally
@@ -89,7 +91,8 @@ export default function SignupPage() {
         toast("Welcome to KinetiK!", "success");
       }
 
-      router.push("/dashboard");
+      // New users go to onboarding to complete their profile
+      router.push("/onboarding");
     } catch (err: any) {
       console.error(err);
       setError(err.message || "Google sign-in failed.");
@@ -121,11 +124,12 @@ export default function SignupPage() {
       // C. Save to Database
       await saveUserToBackend(userCredential.user, selectedRole);
 
-      // D. Save role locally for immediate dashboard access
+      // D. Save role locally
       localStorage.setItem("kinetik_user_role", selectedRole);
 
       toast("Account created successfully!", "success");
-      router.push("/dashboard");
+      // New users go to onboarding to complete their profile
+      router.push("/onboarding");
     } catch (err: any) {
       console.error(err);
       if (err.code === "auth/email-already-in-use") {

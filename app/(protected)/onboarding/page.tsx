@@ -98,6 +98,9 @@ export default function OnboardingPage() {
             name: user.displayName,
             role: role,
             photo_url: user.photoURL || '',
+            bio: bio,
+            location: location,
+            onboarding_completed: true, // Mark onboarding as complete
           })
         });
 
