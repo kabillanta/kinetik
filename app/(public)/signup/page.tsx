@@ -23,7 +23,7 @@ import { motion } from "framer-motion";
 export default function SignupPage() {
   const [step, setStep] = useState<1 | 2>(1);
   const [selectedRole, setSelectedRole] = useState<
-    "VOLUNTEER" | "ORGANIZER" | null
+    "volunteer" | "organizer" | null
   >(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -167,7 +167,7 @@ export default function SignupPage() {
         <p className="text-slate-500 text-xl font-medium">
           {step === 1
             ? "How will you use KinetiK today?"
-            : `Signing up as a ${selectedRole?.toLowerCase()}`}
+            : `Signing up as a ${selectedRole}`}
         </p>
       </div>
 
@@ -184,16 +184,16 @@ export default function SignupPage() {
         <div className="relative z-10 grid md:grid-cols-2 gap-8 w-full max-w-4xl animate-in fade-in slide-in-from-bottom-4">
           {/* Option 1: Volunteer */}
           <button
-            onClick={() => setSelectedRole("VOLUNTEER")}
+            onClick={() => setSelectedRole("volunteer")}
             className={`group relative flex flex-col items-start p-10 rounded-[2.5rem] border transition-all duration-500 text-left ${
-              selectedRole === "VOLUNTEER"
+              selectedRole === "volunteer"
                 ? "bg-white border-primary shadow-2xl shadow-primary/10 ring-1 ring-primary/20"
                 : "bg-white/50 border-slate-100 hover:bg-white hover:border-slate-200 hover:shadow-xl hover:shadow-slate-200/50"
             }`}
           >
             <div
               className={`h-14 w-14 rounded-2xl flex items-center justify-center mb-8 transition-all duration-500 ${
-                selectedRole === "VOLUNTEER"
+                selectedRole === "volunteer"
                   ? "bg-primary text-white scale-110 rotate-3"
                   : "bg-slate-50 text-slate-500 group-hover:bg-primary/10 group-hover:text-primary"
               }`}
@@ -220,16 +220,16 @@ export default function SignupPage() {
 
           {/* Option 2: Organizer */}
           <button
-            onClick={() => setSelectedRole("ORGANIZER")}
+            onClick={() => setSelectedRole("organizer")}
             className={`group relative flex flex-col items-start p-10 rounded-[2.5rem] border transition-all duration-500 text-left ${
-              selectedRole === "ORGANIZER"
+              selectedRole === "organizer"
                 ? "bg-white border-primary shadow-2xl shadow-primary/10 ring-1 ring-primary/20"
                 : "bg-white/50 border-slate-100 hover:bg-white hover:border-slate-200 hover:shadow-xl hover:shadow-slate-200/50"
             }`}
           >
             <div
               className={`h-14 w-14 rounded-2xl flex items-center justify-center mb-8 transition-all duration-500 ${
-                selectedRole === "ORGANIZER"
+                selectedRole === "organizer"
                   ? "bg-primary text-white scale-110 -rotate-3"
                   : "bg-slate-50 text-slate-500 group-hover:bg-primary/10 group-hover:text-primary"
               }`}

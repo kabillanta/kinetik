@@ -44,19 +44,27 @@ interface AuthContextType {
   logout: () => Promise<void>;
   signOut: () => Promise<void>; // Alias for logout
   refreshProfile: () => Promise<void>;
+  setUserProfile: (profile: UserProfile | null) => void;
+  setIsTransitioning: (status: boolean) => void;
+  isTransitioning: boolean;
 }
 
 const AuthContext = createContext<AuthContextType>({} as AuthContextType);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [userProfile, setUserProfileState] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [profileFetchDone, setProfileFetchDone] = useState(false);
+  const [isTransitioning, setIsTransitioning] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
 
   const fetchProfile = async (uid: string) => {
+    // If we're transitioning (just finished onboarding), don't let 
+    // a background fetch revert our optimistic state.
+    if (isTransitioning) return userProfile;
+    
     setProfileFetchDone(false);
     try {
       const token = await auth.currentUser?.getIdToken();
@@ -73,12 +81,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           role: data.role,
           skills: data.skills || [],
           imageUrl: data.photo_url,
-          bio: "",
-          location: "",
+          bio: data.bio || "",
+          location: data.location || "",
           onboardingCompleted: true, // In Neo4j = already onboarded
         } as UserProfile;
 
-        setUserProfile(profile);
+        setUserProfileState(profile);
         if (data.role) {
           localStorage.setItem("kinetik_user_role", data.role);
         }
@@ -100,7 +108,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               skills: data.skills || [],
               onboardingCompleted: true,
             } as UserProfile;
-            setUserProfile(profile);
+            setUserProfileState(profile);
             if (data.role) {
               localStorage.setItem("kinetik_user_role", data.role);
             }
@@ -131,7 +139,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (currentUser) {
         await fetchProfile(currentUser.uid);
       } else {
-        setUserProfile(null);
+        setUserProfileState(null);
         setProfileFetchDone(false);
       }
 
@@ -141,16 +149,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Reset transition guard when navigating away from onboarding
+  useEffect(() => {
+    if (isTransitioning && !pathname.includes("onboarding")) {
+      setIsTransitioning(false);
+    }
+  }, [pathname, isTransitioning]);
+
   // Onboarding redirect — only fires when we KNOW the profile status
   useEffect(() => {
-    if (loading || !user || !profileFetchDone) return;
+    // CRITICAL: Respect isTransitioning flag to prevent loop during the final steps
+    if (loading || !user || !profileFetchDone || isTransitioning) return;
 
     const needsOnboarding = !userProfile || !userProfile.onboardingCompleted;
 
     if (needsOnboarding && !pathname.includes("onboarding")) {
       router.push("/onboarding");
     }
-  }, [userProfile, pathname, loading, user, router, profileFetchDone]);
+  }, [userProfile, pathname, loading, user, router, profileFetchDone, isTransitioning]);
+
+  const setUserProfile = (profile: UserProfile | null) => {
+    setUserProfileState(profile);
+    setProfileFetchDone(true);
+  };
 
   const refreshProfile = async () => {
     if (user) {
@@ -192,6 +213,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         logout,
         signOut,
         refreshProfile,
+        setUserProfile,
+        setIsTransitioning,
+        isTransitioning,
       }}
     >
       {children}

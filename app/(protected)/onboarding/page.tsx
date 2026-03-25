@@ -20,7 +20,7 @@ import { motion, AnimatePresence } from "framer-motion";
 
 export default function OnboardingPage() {
   const router = useRouter();
-  const { user, userProfile, refreshProfile } = useAuth();
+  const { user, userProfile, refreshProfile, setUserProfile, setIsTransitioning } = useAuth();
 
   // If user already completed onboarding, redirect to dashboard
   useEffect(() => {
@@ -63,6 +63,7 @@ export default function OnboardingPage() {
     if (!user) return;
     setIsLoading(true);
     setError("");
+    setIsTransitioning(true); // Start guard
 
     try {
       const userProfileData = {
@@ -78,6 +79,9 @@ export default function OnboardingPage() {
       };
 
       await setDoc(doc(db, "users", user.uid), userProfileData);
+
+      // Final optimistic update
+      setUserProfile(userProfileData);
 
       // Sync user profile to Neo4j backend
       try {
@@ -110,12 +114,17 @@ export default function OnboardingPage() {
         console.warn('Failed to sync with Neo4j backend: user saved to Firestore only', backendErr);
       }
 
-      await refreshProfile();
-      router.push("/dashboard");
+      // No refreshProfile() here! We trust the optimistic state.
+      // Small delay to ensure state and router handshake
+      setTimeout(() => {
+        router.push("/dashboard");
+      }, 100);
+
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
       console.error("Error during onboarding:", err);
       setError(err.message || "Failed to save profile. Please try again.");
+      setIsTransitioning(false); // Reset guard on error
     } finally {
       setIsLoading(false);
     }
