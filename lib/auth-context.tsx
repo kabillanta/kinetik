@@ -5,6 +5,8 @@ import {
   useContext,
   useEffect,
   useState,
+  useRef,
+  useCallback,
   ReactNode,
 } from "react";
 import { API_BASE_URL } from "@/lib/api-config";
@@ -41,9 +43,9 @@ interface AuthContextType {
   userProfile: UserProfile | null;
   loading: boolean;
   profileFetchDone: boolean;
-  signInWithGoogle: () => Promise<any>;
+  signInWithGoogle: () => Promise<User | null>;
   logout: () => Promise<void>;
-  signOut: () => Promise<void>; // Alias for logout
+  signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
   setUserProfile: (profile: UserProfile | null) => void;
   setIsTransitioning: (status: boolean) => void;
@@ -51,7 +53,20 @@ interface AuthContextType {
   profileError: string | null;
 }
 
+// Public paths that don't require onboarding redirect
+const PUBLIC_PATHS = ['/', '/login', '/signup', '/about', '/terms', '/privacy', '/support'];
+const PUBLIC_PATH_PREFIXES = ['/u/']; // Public user profiles
+
+function isPublicPath(pathname: string): boolean {
+  if (PUBLIC_PATHS.includes(pathname)) return true;
+  return PUBLIC_PATH_PREFIXES.some(prefix => pathname.startsWith(prefix));
+}
+
 const AuthContext = createContext<AuthContextType>({} as AuthContextType);
+
+// Max retries for profile fetch
+const MAX_PROFILE_RETRIES = 3;
+const RETRY_DELAY_MS = 2000;
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -60,18 +75,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [profileFetchDone, setProfileFetchDone] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [profileError, setProfileError] = useState<string | null>(null);
+  const retryCountRef = useRef(0);
   const router = useRouter();
   const pathname = usePathname();
 
-  const fetchProfile = async (uid: string) => {
+  const fetchProfile = useCallback(async (uid: string, isRetry = false): Promise<UserProfile | null> => {
     // If we're transitioning (just finished onboarding), don't let 
     // a background fetch revert our optimistic state.
     if (isTransitioning) return userProfile;
     
-    setProfileFetchDone(false);
-    setProfileError(null);
+    if (!isRetry) {
+      setProfileFetchDone(false);
+      setProfileError(null);
+      retryCountRef.current = 0;
+    }
+    
     try {
-      const token = await auth.currentUser?.getIdToken();
+      // Force token refresh to ensure we have a valid token
+      const token = await auth.currentUser?.getIdToken(true);
 
       const res = await fetch(`${API_BASE_URL}/api/users/${uid}`, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
@@ -141,19 +162,43 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return null; // Return null to trigger onboarding redirect
       }
       
-      // Other HTTP errors (500, 503, 403, 401 etc.) — backend problem, don't redirect
+      // Other HTTP errors (500, 503, 403, 401 etc.) — backend problem
+      // Retry for transient errors
+      const isTransientError = res.status >= 500 || res.status === 408 || res.status === 429;
+      
+      if (isTransientError && retryCountRef.current < MAX_PROFILE_RETRIES) {
+        retryCountRef.current++;
+        console.warn(`Backend error ${res.status}, retrying (${retryCountRef.current}/${MAX_PROFILE_RETRIES})...`);
+        setProfileError(`Connection issue. Retrying...`);
+        await new Promise(resolve => setTimeout(resolve, RETRY_DELAY_MS));
+        return fetchProfile(uid, true);
+      }
+      
+      // Max retries exceeded or non-transient error
       console.warn(`Backend fetch failed with status ${res.status}`);
-      setProfileError(`Backend error: ${res.status}`);
-      setProfileFetchDone(false); // We are NOT done if there was an error
+      setProfileError(`Backend unavailable. Please refresh the page.`);
+      // Mark as done so user isn't stuck in loading forever
+      setProfileFetchDone(true);
       return null;
     } catch (e) {
-      console.error("Error fetching profile", e);
-      // NETWORK ERROR / CORS BLOCK
-      setProfileError("Network error or CORS block. Check backend availability.");
-      setProfileFetchDone(false); // We are NOT done if there was a network error
+      console.error("Error fetching profile:", e);
+      
+      // Network error - retry with backoff
+      if (retryCountRef.current < MAX_PROFILE_RETRIES) {
+        retryCountRef.current++;
+        console.warn(`Network error, retrying (${retryCountRef.current}/${MAX_PROFILE_RETRIES})...`);
+        setProfileError(`Network issue. Retrying...`);
+        await new Promise(resolve => setTimeout(resolve, RETRY_DELAY_MS * retryCountRef.current));
+        return fetchProfile(uid, true);
+      }
+      
+      // Max retries exceeded
+      setProfileError("Unable to connect. Please check your internet and refresh.");
+      // Mark as done so user isn't stuck in loading forever
+      setProfileFetchDone(true);
       return null;
     }
-  };
+  }, [isTransitioning, userProfile]);
 
   // Auth listener — runs once on mount
   useEffect(() => {
@@ -182,21 +227,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Onboarding redirect — only fires when we KNOW the profile status
   useEffect(() => {
-    // ONLY the root landing page is a "safe zone".
-    // If you're on /login or /signup and you're already logged in,
-    // you SHOULD be pushed to onboarding if you haven't finished it.
-    const isPublicPath = pathname === "/";
+    // Check if current path is public (doesn't require onboarding redirect)
+    if (isPublicPath(pathname)) return;
 
     // CRITICAL: Respect isTransitioning flag to prevent loop during the final steps
     // ALSO CRITICAL: Don't redirect if we had a profile error (network/CORS/500)
-    if (loading || !user || !profileFetchDone || isTransitioning || isPublicPath || profileError) return;
+    if (loading || !user || !profileFetchDone || isTransitioning || profileError) return;
 
     const needsOnboarding = !userProfile || !userProfile.onboardingCompleted;
 
     if (needsOnboarding && !pathname.includes("onboarding")) {
       router.push("/onboarding");
     }
-  }, [userProfile, pathname, loading, user, router, profileFetchDone, isTransitioning]);
+  }, [userProfile, pathname, loading, user, router, profileFetchDone, isTransitioning, profileError]);
 
   const setUserProfile = (profile: UserProfile | null) => {
     setUserProfileState(profile);
@@ -209,23 +252,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const signInWithGoogle = async () => {
+  const signInWithGoogle = async (): Promise<User | null> => {
     try {
       const provider = new GoogleAuthProvider();
       const result = await signInWithPopup(auth, provider);
-      return result;
+      return result.user;
     } catch (error) {
-      console.error("Error signing in", error);
+      console.error("Error signing in:", error);
       throw error;
     }
   };
 
   const logout = async () => {
     try {
+      // Clear local storage
+      localStorage.removeItem("kinetik_user_role");
+      localStorage.removeItem("kinetik-mode");
       await firebaseSignOut(auth);
       router.push("/");
     } catch (error) {
-      console.error("Error signing out", error);
+      console.error("Error signing out:", error);
       throw error;
     }
   };

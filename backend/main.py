@@ -8,7 +8,7 @@ from slowapi.middleware import SlowAPIMiddleware
 from dotenv import load_dotenv
 
 from database import driver
-from routers import users, events, organizers, volunteers, recommendations
+from routers import users, events, organizers, volunteers, recommendations, reviews
 
 load_dotenv()
 
@@ -39,8 +39,8 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=allow_origins,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type", "X-Requested-With", "X-User-ID"],
 )
 
 limiter = Limiter(key_func=get_remote_address, default_limits=["100/minute"])
@@ -59,6 +59,7 @@ app.include_router(events.router)
 app.include_router(organizers.router)
 app.include_router(volunteers.router)
 app.include_router(recommendations.router)
+app.include_router(reviews.router)
 
 @app.get("/api/health")
 def health_check():

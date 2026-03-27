@@ -1,13 +1,15 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable react/no-unescaped-entities */
 "use client";
 
 import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
-import { Loader2, Calendar, MapPin, Building, ArrowLeft, X as XIcon } from "lucide-react";
+import { Loader2, Calendar, MapPin, Building, X as XIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { API_BASE_URL } from "@/lib/api-config";
 import { useToast } from "@/components/Toast";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { Breadcrumbs, breadcrumbConfigs } from "@/components/ui/Breadcrumbs";
+import { SkeletonList } from "@/components/ui/Skeleton";
 
 export default function ApplicationsPage() {
   const { user } = useAuth();
@@ -44,35 +46,27 @@ export default function ApplicationsPage() {
 
   if (loading) {
     return (
-      <div className="flex h-[calc(100vh-80px)] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
+      <div className="max-w-4xl mx-auto p-6 md:p-10">
+        <Breadcrumbs items={breadcrumbConfigs.applications} className="mb-6" />
+        <h1 className="text-3xl font-bold text-black tracking-tight mb-2">My Applications</h1>
+        <p className="text-[#86868B] mb-8 font-medium">Track the events you&apos;ve signed up for and their status.</p>
+        <SkeletonList items={3} />
       </div>
     );
   }
 
   return (
     <div className="max-w-4xl mx-auto p-6 md:p-10 animate-in fade-in">
+      <Breadcrumbs items={breadcrumbConfigs.applications} className="mb-6" />
+      
       <div className="mb-8">
-        <button 
-          onClick={() => router.push('/dashboard')}
-          className="flex items-center gap-2 text-sm font-medium text-[#86868B] hover:text-black transition-colors mb-4"
-        >
-          <ArrowLeft className="h-4 w-4" /> Back to Dashboard
-        </button>
         <h1 className="text-3xl font-bold text-black tracking-tight">My Applications</h1>
-        <p className="text-[#86868B] mt-2 font-medium">Track the events you've signed up for and their status.</p>
+        <p className="text-[#86868B] mt-2 font-medium">Track the events you&apos;ve signed up for and their status.</p>
       </div>
 
       {applications.length === 0 ? (
-        <div className="p-12 text-center border-2 border-dashed border-black/[0.08] rounded-3xl bg-white">
-          <div className="mb-2 font-semibold text-xl text-black">No applications found</div>
-          <div className="text-[#86868B]">You haven't applied to any events yet. Head to the dashboard to find opportunities!</div>
-          <button 
-            onClick={() => router.push('/dashboard')}
-            className="mt-6 px-6 py-3 bg-black text-white rounded-full font-medium hover:bg-zinc-800 transition-all shadow-md"
-          >
-            Explore Events
-          </button>
+        <div className="bg-white p-6 rounded-3xl border border-black/[0.04] shadow-sm">
+          <EmptyState variant="applications" />
         </div>
       ) : (
         <div className="space-y-4">
@@ -127,7 +121,7 @@ export default function ApplicationsPage() {
                          }
                        }}
                        disabled={withdrawing === app.id}
-                       className="inline-flex items-center justify-center h-10 px-4 rounded-full bg-zinc-100 text-zinc-600 hover:bg-red-50 hover:text-red-600 font-semibold text-sm transition-all disabled:opacity-50"
+                       className="inline-flex items-center justify-center h-10 px-4 rounded-full bg-zinc-100 text-zinc-600 hover:bg-red-50 hover:text-red-600 font-semibold text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                      >
                        {withdrawing === app.id ? (
                          <Loader2 className="h-4 w-4 animate-spin" />
@@ -168,7 +162,7 @@ export default function ApplicationsPage() {
                          }
                        }}
                        disabled={withdrawing === app.id}
-                       className="inline-flex items-center justify-center h-10 px-4 rounded-full bg-zinc-100 text-zinc-600 hover:bg-red-50 hover:text-red-600 font-semibold text-sm transition-all disabled:opacity-50"
+                       className="inline-flex items-center justify-center h-10 px-4 rounded-full bg-zinc-100 text-zinc-600 hover:bg-red-50 hover:text-red-600 font-semibold text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                      >
                        {withdrawing === app.id ? (
                          <Loader2 className="h-4 w-4 animate-spin" />

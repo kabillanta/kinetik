@@ -4,6 +4,12 @@ from pydantic import BaseModel, Field
 from typing import List
 from database import get_db
 from dependencies import get_current_user
+from services.email import (
+    send_application_received,
+    send_application_status_update,
+    send_new_application_to_organizer,
+    send_review_request
+)
 
 router = APIRouter(prefix="/api/events", tags=["events"])
 
@@ -112,8 +118,6 @@ def get_event_detail(event_id: str, current_user: str = Depends(get_current_user
             }
     except HTTPException:
         raise
-    except HTTPException:
-        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -139,8 +143,6 @@ def delete_event(event_id: str, current_user: str = Depends(get_current_user)):
             return {"status": "success", "message": "Event deleted"}
     except HTTPException:
         raise
-    except HTTPException:
-        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -161,7 +163,12 @@ async def apply_to_event(event_id: str, request: Request, user_id: str = Depends
     SET u.name = $name
     WITH u
     MATCH (e:Event {id: $event_id})
-    MERGE (u)-[:APPLIED_FOR]->(e)
+    MERGE (u)-[r:APPLIED_FOR]->(e)
+    ON CREATE SET r.created_at = datetime()
+    WITH u, e
+    OPTIONAL MATCH (e)<-[:ORGANIZED]-(o:User)
+    RETURN e.title AS event_title, e.date AS event_date, u.email AS volunteer_email,
+           u.name AS volunteer_name, o.email AS organizer_email, o.name AS organizer_name
     """
     
     try:
@@ -174,10 +181,36 @@ async def apply_to_event(event_id: str, request: Request, user_id: str = Depends
             if result:
                 raise HTTPException(status_code=400, detail="Organizers cannot apply to their own events.")
 
-            session.run(query, user_id=user_id, event_id=event_id, name=name)
+            result = session.run(query, user_id=user_id, event_id=event_id, name=name).single()
+            
+            # Send confirmation email to volunteer
+            if result and result.get("volunteer_email"):
+                send_application_received(
+                    to=result["volunteer_email"],
+                    volunteer_name=result["volunteer_name"] or name,
+                    event_title=result["event_title"] or "Event",
+                    event_date=result["event_date"] or "TBD"
+                )
+            
+            # Notify organizer of new application
+            if result and result.get("organizer_email"):
+                # Get volunteer skills for organizer notification
+                skills_query = """
+                MATCH (u:User {id: $user_id})-[:HAS_SKILL]->(s:Skill)
+                RETURN collect(s.name) AS skills
+                """
+                skills_result = session.run(skills_query, user_id=user_id).single()
+                volunteer_skills = skills_result["skills"] if skills_result else []
+                
+                send_new_application_to_organizer(
+                    to=result["organizer_email"],
+                    organizer_name=result["organizer_name"] or "Organizer",
+                    volunteer_name=result["volunteer_name"] or name,
+                    event_title=result["event_title"] or "Event",
+                    volunteer_skills=volunteer_skills
+                )
+            
         return {"status": "success", "message": "Successfully applied to event"}
-    except HTTPException:
-        raise
     except HTTPException:
         raise
     except Exception as e:
@@ -203,8 +236,6 @@ def withdraw_application(event_id: str, current_user: str = Depends(get_current_
             return {"status": "success", "message": "Application withdrawn"}
     except HTTPException:
         raise
-    except HTTPException:
-        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -226,7 +257,7 @@ async def update_application_status(event_id: str, volunteer_id: str, request: R
     query = """
     MATCH (o:User {id: $organizer_id})-[:ORGANIZED]->(e:Event {id: $event_id})
     MATCH (v:User {id: $volunteer_id})-[r:APPLIED_FOR]->(e)
-    SET r.status = $status
+    SET r.status = $status, r.updated_at = datetime()
     WITH v, e, o, $status AS new_status
     CREATE (n:Notification {
         id: randomUUID(),
@@ -237,14 +268,24 @@ async def update_application_status(event_id: str, volunteer_id: str, request: R
         read: false
     })
     CREATE (v)-[:HAS_NOTIFICATION]->(n)
-    RETURN new_status
+    RETURN new_status, v.email AS volunteer_email, v.name AS volunteer_name, e.title AS event_title
     """
     try:
         with driver.session() as session:
-            result = session.run(query, organizer_id=user_id, event_id=event_id, volunteer_id=volunteer_id, status=new_status).data()
+            result = session.run(query, organizer_id=user_id, event_id=event_id, volunteer_id=volunteer_id, status=new_status).single()
             if not result:
                 raise HTTPException(status_code=404, detail="Application not found or unauthorized")
-            return {"status": "success", "new_status": result[0]["new_status"]}
+            
+            # Send email notification to volunteer
+            if result.get("volunteer_email"):
+                send_application_status_update(
+                    to=result["volunteer_email"],
+                    volunteer_name=result["volunteer_name"] or "Volunteer",
+                    event_title=result["event_title"] or "Event",
+                    status=new_status.lower()
+                )
+            
+            return {"status": "success", "new_status": result["new_status"]}
     except HTTPException:
         raise
     except Exception as e:
@@ -259,15 +300,30 @@ def complete_event(event_id: str, current_user: str = Depends(get_current_user))
 
     query = """
     MATCH (o:User {id: $user_id})-[:ORGANIZED]->(e:Event {id: $event_id})
-    SET e.status = 'COMPLETED'
-    RETURN e.status AS new_status
+    SET e.status = 'COMPLETED', e.completed_at = datetime()
+    WITH e, o
+    OPTIONAL MATCH (v:User)-[r:APPLIED_FOR {status: 'ACCEPTED'}]->(e)
+    RETURN e.status AS new_status, e.title AS event_title, o.name AS organizer_name,
+           collect({email: v.email, name: v.name}) AS volunteers
     """
     try:
         with driver.session() as session:
-            result = session.run(query, user_id=current_user, event_id=event_id).data()
+            result = session.run(query, user_id=current_user, event_id=event_id).single()
             if not result:
                 raise HTTPException(status_code=404, detail="Event not found or unauthorized")
-            return {"status": "success", "new_status": result[0]["new_status"]}
+            
+            # Send review request emails to all accepted volunteers
+            volunteers = result.get("volunteers") or []
+            for volunteer in volunteers:
+                if volunteer.get("email"):
+                    send_review_request(
+                        to=volunteer["email"],
+                        volunteer_name=volunteer["name"] or "Volunteer",
+                        event_title=result["event_title"] or "Event",
+                        organizer_name=result["organizer_name"] or "Organizer"
+                    )
+            
+            return {"status": "success", "new_status": result["new_status"]}
     except HTTPException:
         raise
     except Exception as e:

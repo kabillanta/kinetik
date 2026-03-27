@@ -78,18 +78,19 @@ export default function SignupPage() {
     setError(null);
     try {
       // A. Login with Firebase
-      const result = await signInWithGoogle();
-      const currentUser = result.user;
-
-      if (currentUser) {
-        // B. Save to Database (backend will mark onboarding_completed=false for new users)
-        await saveUserToBackend(currentUser, selectedRole);
-        
-        // C. Save role locally
-        localStorage.setItem("kinetik_user_role", selectedRole);
-
-        toast("Welcome to KinetiK!", "success");
+      const currentUser = await signInWithGoogle();
+      if (!currentUser) {
+        setError("Sign in was cancelled");
+        return;
       }
+
+      // B. Save to Database (backend will mark onboarding_completed=false for new users)
+      await saveUserToBackend(currentUser, selectedRole);
+      
+      // C. Save role locally
+      localStorage.setItem("kinetik_user_role", selectedRole);
+
+      toast("Welcome to KinetiK!", "success");
 
       // New users go to onboarding to complete their profile
       router.push("/onboarding");

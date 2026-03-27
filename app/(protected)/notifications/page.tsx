@@ -3,8 +3,10 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { API_BASE_URL } from "@/lib/api-config";
-import { Bell, CheckCircle2, Loader2, Info } from "lucide-react";
+import { Bell, CheckCircle2, Loader2, Info, CheckCheck } from "lucide-react";
 import { useToast } from "@/components/Toast";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { Breadcrumbs, breadcrumbConfigs } from "@/components/ui/Breadcrumbs";
 
 interface Notification {
   id: string;
@@ -19,6 +21,7 @@ export default function NotificationsPage() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [markingId, setMarkingId] = useState<string | null>(null);
+  const [markingAll, setMarkingAll] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -62,10 +65,37 @@ export default function NotificationsPage() {
     }
   };
 
+  const markAllAsRead = async () => {
+    if (!user || unreadCount === 0) return;
+    setMarkingAll(true);
+    try {
+      const token = await user.getIdToken();
+      // Mark each unread notification
+      const unreadNotifications = notifications.filter(n => !n.read);
+      await Promise.all(
+        unreadNotifications.map(n =>
+          fetch(`${API_BASE_URL}/api/notifications/${n.id}/read`, {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${token}` }
+          })
+        )
+      );
+      setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+      toast(`Marked ${unreadNotifications.length} notifications as read`, "success");
+    } catch (err) {
+      toast("Failed to mark all as read", "error");
+    } finally {
+      setMarkingAll(false);
+    }
+  };
+
   const unreadCount = notifications.filter(n => !n.read).length;
 
   return (
     <div className="p-4 md:p-8 max-w-4xl mx-auto space-y-6 animate-in fade-in zoom-in-95 duration-500">
+      
+      {/* Breadcrumbs */}
+      <Breadcrumbs items={breadcrumbConfigs.notifications} className="mb-2" />
       
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-[2rem] border border-black/[0.04] shadow-sm">
@@ -80,6 +110,22 @@ export default function NotificationsPage() {
             </p>
           </div>
         </div>
+        
+        {/* Mark All as Read Button */}
+        {unreadCount > 0 && (
+          <button
+            onClick={markAllAsRead}
+            disabled={markingAll}
+            className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold rounded-xl bg-black text-white hover:bg-gray-800 transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {markingAll ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <CheckCheck className="h-4 w-4" />
+            )}
+            Mark All as Read
+          </button>
+        )}
       </div>
 
       {/* List */}
@@ -89,12 +135,8 @@ export default function NotificationsPage() {
             <Loader2 className="h-8 w-8 text-zinc-400 animate-spin" />
           </div>
         ) : notifications.length === 0 ? (
-          <div className="bg-white p-12 rounded-[2rem] border border-black/[0.04] text-center shadow-sm">
-            <div className="h-16 w-16 bg-zinc-50 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Bell className="h-8 w-8 text-zinc-300" />
-            </div>
-            <h3 className="text-xl font-semibold text-black mb-2">You're all caught up!</h3>
-            <p className="text-[#86868B]">When organizers respond to your applications, they will appear here.</p>
+          <div className="bg-white p-6 rounded-[2rem] border border-black/[0.04] shadow-sm">
+            <EmptyState variant="notifications" />
           </div>
         ) : (
           notifications.map((n) => (
@@ -135,7 +177,7 @@ export default function NotificationsPage() {
                 <button
                   onClick={() => markAsRead(n.id)}
                   disabled={markingId === n.id}
-                  className="shrink-0 px-4 py-2.5 text-sm font-semibold rounded-xl bg-white border border-black/10 text-black hover:bg-zinc-50 transition-all shadow-sm"
+                  className="shrink-0 px-4 py-2.5 text-sm font-semibold rounded-xl bg-white border border-black/10 text-black hover:bg-zinc-50 transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {markingId === n.id ? <Loader2 className="h-4 w-4 animate-spin" /> : "Mark as read"}
                 </button>

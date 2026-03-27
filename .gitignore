@@ -42,3 +42,10 @@ next-env.d.ts
 
 # python
 venv/
+__pycache__/
+*.pyc
+
+# backend env files (CRITICAL: never commit credentials)
+backend/.env
+backend/.env.*
+!backend/.env.example

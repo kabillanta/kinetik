@@ -1,12 +1,29 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { useToast } from "@/components/Toast";
-import { Camera, MapPin, Sparkles, AlertCircle, Loader2, Save, User as UserIcon, Mail, Briefcase, ChevronRight, Link as LinkIcon, Github, Linkedin, Clock } from "lucide-react";
+import { Camera, MapPin, Sparkles, AlertCircle, Loader2, Save, User as UserIcon, Mail, Briefcase, ChevronRight, Link as LinkIcon, Github, Linkedin, Clock, Star } from "lucide-react";
 import Link from "next/link";
 import { API_BASE_URL } from "@/lib/api-config";
+import { StarRating, ReviewCard } from "@/components/ui/ReviewModal";
+
+interface ReviewStats {
+  average_rating: number;
+  review_count: number;
+  rating_distribution: { [key: number]: number };
+}
+
+interface Review {
+  id: string;
+  reviewer_id: string;
+  reviewer_name: string;
+  event_title: string;
+  rating: number;
+  comment?: string;
+  created_at: string;
+}
 
 export default function ProfilePage() {
   const { user, userProfile, refreshProfile } = useAuth();
@@ -29,6 +46,42 @@ export default function ProfilePage() {
   const [successMsg, setSuccessMsg] = useState("");
   const [showImageInput, setShowImageInput] = useState(false);
 
+  // Review stats state
+  const [reviewStats, setReviewStats] = useState<ReviewStats | null>(null);
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [loadingReviews, setLoadingReviews] = useState(true);
+
+  const fetchReviewData = useCallback(async () => {
+    if (!user) return;
+    try {
+      const token = await user.getIdToken();
+      
+      // Fetch review stats
+      const statsRes = await fetch(`${API_BASE_URL}/api/reviews/users/${user.uid}/stats`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      // Fetch recent reviews
+      const reviewsRes = await fetch(`${API_BASE_URL}/api/reviews/users/${user.uid}?limit=5`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      if (statsRes.ok) {
+        const statsData = await statsRes.json();
+        setReviewStats(statsData);
+      }
+
+      if (reviewsRes.ok) {
+        const reviewsData = await reviewsRes.json();
+        setReviews(reviewsData.reviews || []);
+      }
+    } catch (err) {
+      console.error("Failed to fetch review data:", err);
+    } finally {
+      setLoadingReviews(false);
+    }
+  }, [user]);
+
   useEffect(() => {
     if (userProfile || user) {
       setDisplayName(userProfile?.displayName || user?.displayName || "");
@@ -43,6 +96,10 @@ export default function ProfilePage() {
       setAvailability(userProfile?.availability || "Available for opportunities");
     }
   }, [userProfile, user]);
+
+  useEffect(() => {
+    fetchReviewData();
+  }, [fetchReviewData]);
 
   const handleAddSkill = (
     e: React.KeyboardEvent<HTMLInputElement> | React.FocusEvent<HTMLInputElement>
@@ -352,6 +409,78 @@ export default function ProfilePage() {
                   </div>
                 </div>
                </div>
+            </div>
+
+            {/* Reviews & Ratings Section */}
+            <div className="rounded-3xl border border-black/[0.04] bg-white p-6 shadow-sm">
+              <h3 className="text-lg font-bold text-black mb-5 tracking-tight flex items-center gap-2">
+                <Star className="h-5 w-5 text-amber-500" />
+                Reviews & Ratings
+              </h3>
+              
+              {loadingReviews ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-6 w-6 animate-spin text-zinc-400" />
+                </div>
+              ) : reviewStats && reviewStats.review_count > 0 ? (
+                <div className="space-y-6">
+                  {/* Rating Summary */}
+                  <div className="flex items-center gap-6 p-4 bg-amber-50/50 rounded-2xl border border-amber-100">
+                    <div className="text-center">
+                      <p className="text-4xl font-bold text-amber-600">
+                        {reviewStats.average_rating.toFixed(1)}
+                      </p>
+                      <StarRating rating={reviewStats.average_rating} size="sm" />
+                      <p className="text-xs text-zinc-500 mt-1">
+                        {reviewStats.review_count} review{reviewStats.review_count !== 1 ? "s" : ""}
+                      </p>
+                    </div>
+                    <div className="flex-1 space-y-1.5">
+                      {[5, 4, 3, 2, 1].map((star) => {
+                        const count = reviewStats.rating_distribution[star] || 0;
+                        const percentage = reviewStats.review_count > 0 
+                          ? (count / reviewStats.review_count) * 100 
+                          : 0;
+                        return (
+                          <div key={star} className="flex items-center gap-2 text-xs">
+                            <span className="w-3 text-zinc-500">{star}</span>
+                            <div className="flex-1 h-2 bg-zinc-200 rounded-full overflow-hidden">
+                              <div 
+                                className="h-full bg-amber-400 rounded-full transition-all"
+                                style={{ width: `${percentage}%` }}
+                              />
+                            </div>
+                            <span className="w-6 text-zinc-400 text-right">{count}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Recent Reviews */}
+                  {reviews.length > 0 && (
+                    <div className="space-y-3">
+                      <p className="text-sm font-semibold text-zinc-600">Recent Reviews</p>
+                      {reviews.slice(0, 3).map((review) => (
+                        <ReviewCard
+                          key={review.id}
+                          reviewerName={review.reviewer_name}
+                          rating={review.rating}
+                          comment={review.comment}
+                          date={review.created_at ? new Date(review.created_at).toLocaleDateString() : ""}
+                          eventTitle={review.event_title}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="p-6 border-2 border-dashed border-black/[0.08] rounded-2xl text-center">
+                  <Star className="h-8 w-8 text-zinc-300 mx-auto mb-2" />
+                  <p className="text-zinc-500 text-sm font-medium">No reviews yet</p>
+                  <p className="text-zinc-400 text-xs mt-1">Complete events to receive reviews from organizers</p>
+                </div>
+              )}
             </div>
           </div>
 

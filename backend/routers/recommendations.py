@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from database import get_db
 from dependencies import get_current_user
 
@@ -7,9 +7,9 @@ router = APIRouter(prefix="/api/recommendations", tags=["recommendations"])
 @router.get("/users/{user_id}")
 def get_user_event_recommendations(
     user_id: str, 
-    limit: int = 20, 
-    skip: int = 0, 
-    search_query: str = None,
+    limit: int = Query(default=20, ge=1, le=100),
+    skip: int = Query(default=0, ge=0),
+    search_query: str = Query(default=None, max_length=200),
     current_user: str = Depends(get_current_user)
 ):
     if current_user != user_id:

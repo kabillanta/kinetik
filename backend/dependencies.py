@@ -25,28 +25,38 @@ except ValueError:
     # App already initialized
     pass
 
-DEBUG_MODE = os.getenv("DEBUG_MODE", "false").lower() == "true"
+import logging
 
-async def get_current_user(authorization: str = Header(None), x_user_id: str = Header(None)):
+logger = logging.getLogger(__name__)
+
+async def get_current_user(authorization: str = Header(None)):
     """
     Verifies the Firebase ID token from the Authorization header.
-    X-User-ID fallback is ONLY allowed in DEBUG_MODE (local dev).
-    """
-    user_id = None
+    Returns the user's UID if token is valid.
     
-    if authorization and authorization.startswith("Bearer "):
-        token = authorization.split("Bearer ")[1]
-        try:
-            decoded_token = firebase_auth.verify_id_token(token)
-            user_id = decoded_token.get("uid")
-        except Exception as e:
-            print(f"Token verification failed: {e}")
-            pass
-            
-    if not user_id and DEBUG_MODE and x_user_id:
-        user_id = x_user_id
-
-    if not user_id:
+    Raises:
+        HTTPException 401: If no token provided or token is invalid
+    """
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(
+            status_code=401, 
+            detail="Missing or invalid Authorization header. Expected: Bearer <token>"
+        )
+    
+    token = authorization.split("Bearer ")[1]
+    
+    try:
+        decoded_token = firebase_auth.verify_id_token(token)
+        user_id = decoded_token.get("uid")
+        if not user_id:
+            raise HTTPException(status_code=401, detail="Token missing user ID")
+        return user_id
+    except firebase_auth.InvalidIdTokenError:
         raise HTTPException(status_code=401, detail="Invalid authentication token")
-        
-    return user_id
+    except firebase_auth.ExpiredIdTokenError:
+        raise HTTPException(status_code=401, detail="Token expired. Please re-authenticate.")
+    except firebase_auth.RevokedIdTokenError:
+        raise HTTPException(status_code=401, detail="Token has been revoked")
+    except Exception as e:
+        logger.error(f"Token verification failed: {e}")
+        raise HTTPException(status_code=401, detail="Authentication failed")
