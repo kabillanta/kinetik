@@ -16,6 +16,7 @@ import {
   Plus
 } from "lucide-react";
 import CreateEventModal from "@/components/CreateEventModal";
+import ConfirmModal from "@/components/ConfirmModal";
 import StatCard from "@/components/StatCard";
 import { User } from "firebase/auth";
 import { API_BASE_URL } from "@/lib/api-config";
@@ -43,6 +44,12 @@ const OrganizerDashboard = ({
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [deletingEvent, setDeletingEvent] = useState<string | null>(null);
   const [completingEvent, setCompletingEvent] = useState<string | null>(null);
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    type: "delete" | "complete";
+    eventId: string;
+    eventTitle: string;
+  }>({ isOpen: false, type: "delete", eventId: "", eventTitle: "" });
   const { toast } = useToast();
 
   const handleApplicationAction = async (eventId: string, volunteerId: string, status: "ACCEPTED" | "REJECTED") => {
@@ -72,6 +79,56 @@ const OrganizerDashboard = ({
       console.error(`Failed to ${status} application:`, error);
     } finally {
       setActionLoading(null);
+    }
+  };
+
+  const handleDeleteEvent = async (eventId: string) => {
+    if (!user) return;
+    setDeletingEvent(eventId);
+    try {
+      const token = await user.getIdToken();
+      const res = await fetch(`${API_BASE_URL}/api/events/${eventId}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        setDashboardData(prev => prev ? {
+          ...prev,
+          recent_events: prev.recent_events?.filter(e => e.id !== eventId),
+          stats: { ...prev.stats, active_events: Math.max(0, prev.stats.active_events - 1) }
+        } : null);
+        toast("Event deleted", "success");
+      }
+    } catch (error) {
+      toast("Error deleting event", "error");
+    } finally {
+      setDeletingEvent(null);
+      setConfirmModal({ isOpen: false, type: "delete", eventId: "", eventTitle: "" });
+    }
+  };
+
+  const handleCompleteEvent = async (eventId: string) => {
+    if (!user) return;
+    setCompletingEvent(eventId);
+    try {
+      const token = await user.getIdToken();
+      const res = await fetch(`${API_BASE_URL}/api/events/${eventId}/complete`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        setDashboardData(prev => prev ? {
+          ...prev,
+          recent_events: prev.recent_events?.map(e => e.id === eventId ? { ...e, status: "COMPLETED" } : e),
+          stats: { ...prev.stats, active_events: Math.max(0, prev.stats.active_events - 1) }
+        } : null);
+        toast("Event completed!", "success");
+      }
+    } catch (error) {
+      toast("Error completing event", "error");
+    } finally {
+      setCompletingEvent(null);
+      setConfirmModal({ isOpen: false, type: "complete", eventId: "", eventTitle: "" });
     }
   };
 
@@ -105,223 +162,286 @@ const OrganizerDashboard = ({
   }, [user, fetchDashboard]);
 
   return (
-    <div className="space-y-8 animate-in fade-in">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 py-4">
+    <div className="space-y-10 animate-in fade-in duration-300">
+      {/* Header - Clean & Minimal */}
+      <header className="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-8 border-b border-zinc-200">
         <div>
-          <h1 className="text-4xl font-semibold text-black tracking-tight flex items-center gap-3">
-            Organizer Panel{" "}
-            <span className="text-[10px] bg-black text-white px-2.5 py-1 rounded-full tracking-widest font-bold uppercase">
-              BETA
-            </span>
+          <p className="text-xs font-bold text-zinc-400 uppercase tracking-[0.2em] mb-2">Dashboard</p>
+          <h1 className="text-4xl font-bold text-black tracking-tight">
+            Organizer
           </h1>
-          <p className="text-[#86868B] mt-2 text-lg font-medium">
-            Manage your events and recruit top talent.
+        </div>
+        <button
+          onClick={() => setIsModalOpen(true)}
+          className="group flex items-center gap-2.5 bg-black text-white px-6 py-3 rounded-xl font-semibold text-sm hover:bg-zinc-800 transition-colors active:scale-[0.98]"
+        >
+          <Plus className="h-4 w-4 transition-transform group-hover:rotate-90 duration-200" />
+          New Event
+        </button>
+      </header>
+
+      {/* Stats - Minimal Cards */}
+      <section className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="bg-white rounded-2xl p-6 border border-zinc-200 hover:border-zinc-300 transition-colors">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="h-10 w-10 rounded-xl bg-zinc-100 flex items-center justify-center">
+              <Calendar className="h-5 w-5 text-zinc-600" />
+            </div>
+            <span className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Active</span>
+          </div>
+          <p className="text-3xl font-bold text-black tabular-nums">
+            {dashboardData?.stats?.active_events || 0}
           </p>
+          <p className="text-sm text-zinc-500 mt-1">Events</p>
         </div>
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => router.push('/profile')}
-            className="flex items-center gap-2 rounded-full bg-white px-5 py-2.5 text-[#1D1D1F] hover:bg-zinc-50 transition-all border border-black/[0.08] shadow-sm font-medium"
-          >
-            <LayoutDashboard className="h-4 w-4" /> Edit Profile
-          </button>
-          <button
-            onClick={() => setIsModalOpen(true)}
-            className="flex items-center gap-2 rounded-full bg-black px-6 py-2.5 text-white hover:bg-zinc-800 shadow-md transition-all font-medium"
-          >
-            <Plus className="h-4 w-4" /> Create Event
-          </button>
+
+        <div className="bg-white rounded-2xl p-6 border border-zinc-200 hover:border-zinc-300 transition-colors">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="h-10 w-10 rounded-xl bg-zinc-100 flex items-center justify-center">
+              <Users className="h-5 w-5 text-zinc-600" />
+            </div>
+            <span className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Pending</span>
+          </div>
+          <p className="text-3xl font-bold text-black tabular-nums">
+            {dashboardData?.stats?.pending_applications || 0}
+          </p>
+          <p className="text-sm text-zinc-500 mt-1">Applications</p>
         </div>
-      </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <StatCard label="Active Events" value={dashboardData?.stats?.active_events || 0} icon={Calendar} />
-        <StatCard label="Pending Applications" value={dashboardData?.stats?.pending_applications || 0} icon={Users} />
-        <StatCard label="Total Volunteers" value={dashboardData?.stats?.total_volunteers || 0} icon={CheckCircle2} />
-      </div>
+        <div className="bg-white rounded-2xl p-6 border border-zinc-200 hover:border-zinc-300 transition-colors">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="h-10 w-10 rounded-xl bg-zinc-100 flex items-center justify-center">
+              <CheckCircle2 className="h-5 w-5 text-zinc-600" />
+            </div>
+            <span className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Total</span>
+          </div>
+          <p className="text-3xl font-bold text-black tabular-nums">
+            {dashboardData?.stats?.total_volunteers || 0}
+          </p>
+          <p className="text-sm text-zinc-500 mt-1">Volunteers</p>
+        </div>
+      </section>
 
-      {/* Recent Activity / Applications */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 pt-6">
-        <div>
-          <h2 className="text-2xl font-semibold text-black mb-6 tracking-tight">
-            Pending Applications
-          </h2>
-          <div className="grid gap-4">
+      {/* Main Content Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Applications Column - Takes 2/3 */}
+        <section className="lg:col-span-2">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-lg font-bold text-black">Pending Applications</h2>
+            {!loading && dashboardData?.applications && dashboardData.applications.length > 0 && (
+              <span className="text-[11px] font-bold text-zinc-500 bg-zinc-100 px-3 py-1.5 rounded-full">
+                {dashboardData.applications.length} pending
+              </span>
+            )}
+          </div>
+
+          <div className="space-y-3">
             {loading ? (
-               [1, 2, 3].map((i) => (
-                  <div
-                    key={i}
-                    className="h-32 w-full rounded-2xl bg-white animate-pulse border border-black/[0.04]"
-                  />
-                ))
+              [1, 2, 3].map((i) => (
+                <div key={i} className="h-28 rounded-2xl bg-zinc-100 animate-pulse" />
+              ))
             ) : !dashboardData?.applications || dashboardData.applications.length === 0 ? (
-              <div className="p-10 text-center border-2 border-dashed border-black/[0.08] rounded-3xl bg-white text-[#86868B]">
-                <div className="mb-2 font-semibold text-xl text-black">
-                  No applications yet.
+              <div className="rounded-2xl border-2 border-dashed border-zinc-200 p-12 text-center">
+                <div className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-zinc-100 mb-4">
+                  <Users className="h-6 w-6 text-zinc-400" />
                 </div>
-                <div className="text-base">
-                  Create more events to attract volunteers.
-                </div>
+                <p className="text-zinc-900 font-semibold mb-1">No applications</p>
+                <p className="text-sm text-zinc-500">New applications will appear here</p>
               </div>
             ) : (
               dashboardData.applications.map((app, idx) => (
-                <div key={idx} className="group p-6 rounded-3xl border border-black/[0.04] bg-white hover:shadow-lg transition-all duration-300">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
-                    <div className="flex items-center gap-5">
-                      <div className="h-14 w-14 rounded-2xl bg-zinc-100 flex items-center justify-center text-lg font-bold text-black">
-                        {app.volunteer_name.substring(0, 2).toUpperCase()}
-                      </div>
-                      <div>
-                        <h3 className="font-semibold text-black text-xl tracking-tight">
-                          {app.volunteer_name}
-                        </h3>
-                        <p className="text-sm text-[#86868B] font-medium mt-0.5">
-                          Applied for:{" "}
-                          <span className="text-black">{app.event_title}</span>
-                        </p>
-                      </div>
+                <div
+                  key={idx}
+                  className="group bg-white rounded-2xl border border-zinc-200 p-5 hover:border-zinc-300 transition-all"
+                >
+                  <div className="flex items-start gap-4">
+                    {/* Avatar */}
+                    <div className="h-12 w-12 rounded-full bg-black flex items-center justify-center text-sm font-bold text-white flex-shrink-0">
+                      {app.volunteer_name.substring(0, 2).toUpperCase()}
                     </div>
-                    <div className="flex gap-3">
-                      <button onClick={() => handleApplicationAction(app.event_id, app.volunteer_id, "ACCEPTED")} className="p-2.5 rounded-full bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition-all shadow-sm">
-                        <CheckCircle2 className="h-5 w-5" />
-                      </button>
-                      <button onClick={() => handleApplicationAction(app.event_id, app.volunteer_id, "REJECTED")} className="p-2.5 rounded-full bg-red-50 text-red-600 hover:bg-red-100 transition-all shadow-sm">
-                        <XCircle className="h-5 w-5" />
-                      </button>
-                    </div>
-                  </div>
-                  <div className="mt-6 pl-0 sm:pl-[76px]">
-                    <div className="bg-zinc-50 rounded-2xl p-5 border border-black/[0.03]">
-                      <div className="flex flex-wrap gap-2 mt-2">
-                        <p className="text-[14px] text-[#1D1D1F] leading-relaxed mr-2 font-semibold">Skills:</p>
-                        {app.skills.map((skill: string) => (
-                          <span key={skill} className="text-xs font-medium bg-black/[0.04] px-3 py-1.5 rounded-lg text-[#1D1D1F]">
-                            {skill}
-                          </span>
-                        ))}
+
+                    {/* Content */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between gap-4">
+                        <div>
+                          <h3 className="font-semibold text-black truncate">{app.volunteer_name}</h3>
+                          <p className="text-sm text-zinc-500 mt-0.5">
+                            for <span className="text-black font-medium">{app.event_title}</span>
+                          </p>
+                        </div>
+
+                        {/* Action Buttons */}
+                        <div className="flex gap-2 flex-shrink-0">
+                          <button
+                            onClick={() => handleApplicationAction(app.event_id, app.volunteer_id, "ACCEPTED")}
+                            disabled={actionLoading === `${app.event_id}-${app.volunteer_id}-ACCEPTED`}
+                            className="h-9 w-9 rounded-lg bg-black hover:bg-zinc-800 flex items-center justify-center transition-colors disabled:opacity-50"
+                            title="Accept"
+                          >
+                            {actionLoading === `${app.event_id}-${app.volunteer_id}-ACCEPTED` ? (
+                              <Loader2 className="h-4 w-4 text-white animate-spin" />
+                            ) : (
+                              <CheckCircle2 className="h-4 w-4 text-white" />
+                            )}
+                          </button>
+                          <button
+                            onClick={() => handleApplicationAction(app.event_id, app.volunteer_id, "REJECTED")}
+                            disabled={actionLoading === `${app.event_id}-${app.volunteer_id}-REJECTED`}
+                            className="h-9 w-9 rounded-lg bg-zinc-100 hover:bg-zinc-200 flex items-center justify-center transition-colors disabled:opacity-50"
+                            title="Reject"
+                          >
+                            {actionLoading === `${app.event_id}-${app.volunteer_id}-REJECTED` ? (
+                              <Loader2 className="h-4 w-4 text-zinc-600 animate-spin" />
+                            ) : (
+                              <XCircle className="h-4 w-4 text-zinc-600" />
+                            )}
+                          </button>
+                        </div>
                       </div>
-                     </div>
+
+                      {/* Skills */}
+                      {app.skills && app.skills.length > 0 && (
+                        <div className="flex flex-wrap gap-1.5 mt-3">
+                          {app.skills.map((skill: string) => (
+                            <span
+                              key={skill}
+                              className="text-[11px] font-medium bg-zinc-100 px-2.5 py-1 rounded-md text-zinc-600"
+                            >
+                              {skill}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               ))
             )}
           </div>
-        </div>
+        </section>
 
-        <div>
-           <h2 className="text-2xl font-semibold text-black mb-6 tracking-tight">
-             Your Recent Events
-           </h2>
-           <div className="grid gap-4">
-             {loading ? (
-                [1, 2].map((i) => (
-                   <div key={i} className="h-24 w-full rounded-2xl bg-white animate-pulse border border-black/[0.04]" />
-                ))
-             ) : !dashboardData?.recent_events || dashboardData.recent_events.length === 0 ? (
-                <div className="p-10 text-center border-2 border-dashed border-black/[0.08] rounded-3xl bg-white text-[#86868B]">
-                  <div className="mb-2 font-semibold text-xl text-black">No events posted.</div>
-                  <div className="text-base transform transition-all hover:scale-105 cursor-pointer text-blue-500 font-medium" onClick={() => setIsModalOpen(true)}>
-                    Create one now &rarr;
+        {/* Events Column - Takes 1/3 */}
+        <section>
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-lg font-bold text-black">Your Events</h2>
+          </div>
+
+          <div className="space-y-3">
+            {loading ? (
+              [1, 2].map((i) => (
+                <div key={i} className="h-32 rounded-2xl bg-zinc-100 animate-pulse" />
+              ))
+            ) : !dashboardData?.recent_events || dashboardData.recent_events.length === 0 ? (
+              <div className="rounded-2xl border-2 border-dashed border-zinc-200 p-10 text-center">
+                <div className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-zinc-100 mb-4">
+                  <Calendar className="h-6 w-6 text-zinc-400" />
+                </div>
+                <p className="text-zinc-900 font-semibold mb-2">No events</p>
+                <button
+                  onClick={() => setIsModalOpen(true)}
+                  className="text-sm font-medium text-zinc-600 hover:text-black transition-colors"
+                >
+                  Create your first →
+                </button>
+              </div>
+            ) : (
+              dashboardData.recent_events.map((ev) => (
+                <div
+                  key={ev.id}
+                  className="bg-white rounded-2xl border border-zinc-200 p-5 hover:border-zinc-300 transition-all"
+                >
+                  {/* Event Info */}
+                  <div className="mb-4">
+                    <div className="flex items-start justify-between gap-2 mb-2">
+                      <h3 className="font-semibold text-black leading-snug">{ev.title}</h3>
+                      {ev.status === "COMPLETED" && (
+                        <span className="flex-shrink-0 text-[10px] font-bold text-zinc-500 bg-zinc-100 px-2 py-1 rounded-md uppercase">
+                          Done
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs text-zinc-500 flex items-center gap-2">
+                      <span className="inline-flex items-center gap-1">
+                        <Users className="h-3 w-3" />
+                        {ev.role}
+                      </span>
+                      {ev.location && (
+                        <>
+                          <span>•</span>
+                          <span>{ev.location}</span>
+                        </>
+                      )}
+                    </p>
+                  </div>
+
+                  {/* Skills */}
+                  {ev.skills && ev.skills.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mb-4">
+                      {ev.skills.slice(0, 3).map((s: string) => (
+                        <span
+                          key={s}
+                          className="text-[10px] font-medium bg-zinc-100 px-2 py-0.5 rounded text-zinc-600"
+                        >
+                          {s}
+                        </span>
+                      ))}
+                      {ev.skills.length > 3 && (
+                        <span className="text-[10px] font-medium text-zinc-400">
+                          +{ev.skills.length - 3}
+                        </span>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Actions */}
+                  <div className="flex gap-2 pt-3 border-t border-zinc-100">
+                    {ev.status !== "COMPLETED" && (
+                      <button
+                        onClick={() => setConfirmModal({
+                          isOpen: true,
+                          type: "complete",
+                          eventId: ev.id,
+                          eventTitle: ev.title
+                        })}
+                        disabled={completingEvent === ev.id}
+                        className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-semibold text-black bg-zinc-100 hover:bg-zinc-200 rounded-lg transition-colors disabled:opacity-50"
+                      >
+                        {completingEvent === ev.id ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          <CheckCircle className="h-3.5 w-3.5" />
+                        )}
+                        Complete
+                      </button>
+                    )}
+
+                    {/* Animated Delete Button */}
+                    <button
+                      onClick={() => setConfirmModal({
+                        isOpen: true,
+                        type: "delete",
+                        eventId: ev.id,
+                        eventTitle: ev.title
+                      })}
+                      disabled={deletingEvent === ev.id}
+                      className={`group relative overflow-hidden ${ev.status === "COMPLETED" ? 'flex-1' : ''} flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-lg transition-all duration-300 disabled:opacity-50 border border-zinc-200 hover:border-red-200 hover:bg-red-50 text-zinc-500 hover:text-red-600`}
+                    >
+                      {deletingEvent === ev.id ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <Trash2 className="h-3.5 w-3.5 transition-transform duration-200 group-hover:scale-110 group-hover:-rotate-12" />
+                      )}
+                      <span className="relative">
+                        Delete
+                        <span className="absolute inset-x-0 bottom-0 h-px bg-red-400 scale-x-0 group-hover:scale-x-100 transition-transform origin-left" />
+                      </span>
+                    </button>
                   </div>
                 </div>
-             ) : (
-                dashboardData.recent_events.map((ev) => (
-                  <div key={ev.id} className="group p-5 rounded-3xl border border-black/[0.04] bg-white hover:shadow-lg transition-all duration-300">
-                    <div className="flex justify-between items-start gap-4">
-                      <div>
-                        <h3 className="font-bold text-lg text-black">{ev.title}</h3>
-                        <p className="text-sm text-[#86868B] font-medium mt-1 mb-3">Role: {ev.role} • {ev.location}</p>
-                        <div className="flex flex-wrap gap-1.5">
-                          {ev.skills.map((s: string) => (
-                            <span key={s} className="text-[10px] font-bold bg-zinc-100 px-2 py-1 rounded-md text-zinc-600 uppercase tracking-wider">{s}</span>
-                          ))}
-                        </div>
-                      </div>
-                      <div className="flex flex-col items-end gap-2">
-                        <div className="text-xs font-semibold text-zinc-400 bg-zinc-50 px-3 py-1.5 rounded-full whitespace-nowrap">
-                          {ev.date || "No date"}
-                        </div>
-                        <button
-                          onClick={async () => {
-                            if (!user) return;
-                            if (!confirm("Are you sure you want to delete this event? This will also remove all applications for it.")) return;
-                            setDeletingEvent(ev.id);
-                            try {
-                              const token = await user.getIdToken();
-                              const res = await fetch(`${API_BASE_URL}/api/events/${ev.id}`, {
-                                method: "DELETE",
-                                headers: { Authorization: `Bearer ${token}` }
-                              });
-                              if (res.ok) {
-                                setDashboardData(prev => prev ? {
-                                  ...prev,
-                                  recent_events: prev.recent_events?.filter(e => e.id !== ev.id),
-                                  stats: { ...prev.stats, active_events: Math.max(0, prev.stats.active_events - 1) }
-                                } : null);
-                                toast("Event deleted successfully", "success");
-                              } else {
-                                toast("Failed to delete event", "error");
-                              }
-                            } catch (error) {
-                              toast("Network error while deleting", "error");
-                            } finally {
-                              setDeletingEvent(null);
-                            }
-                          }}
-                          disabled={deletingEvent === ev.id}
-                          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors disabled:opacity-50"
-                        >
-                          {deletingEvent === ev.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
-                          Delete
-                        </button>
-                        {ev.status !== "COMPLETED" ? (
-                          <button
-                            onClick={async () => {
-                              if (!user) return;
-                              if (!confirm("Are you sure you want to mark this event as completed? This will permanently award impact hours to accepted volunteers.")) return;
-                              setCompletingEvent(ev.id);
-                              try {
-                                const token = await user.getIdToken();
-                                const res = await fetch(`${API_BASE_URL}/api/events/${ev.id}/complete`, {
-                                  method: "POST",
-                                  headers: { Authorization: `Bearer ${token}` }
-                                });
-                                if (res.ok) {
-                                  setDashboardData(prev => prev ? {
-                                    ...prev,
-                                    recent_events: prev.recent_events?.map(e => e.id === ev.id ? { ...e, status: "COMPLETED" } : e),
-                                    stats: { ...prev.stats, active_events: Math.max(0, prev.stats.active_events - 1) }
-                                  } : null);
-                                  toast("Event marked as completed!", "success");
-                                } else {
-                                  toast("Failed to mark completed", "error");
-                                }
-                              } catch (error) {
-                                toast("Network error", "error");
-                              } finally {
-                                setCompletingEvent(null);
-                              }
-                            }}
-                            disabled={completingEvent === ev.id}
-                            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-emerald-600 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-colors disabled:opacity-50"
-                          >
-                            {completingEvent === ev.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle className="h-3.5 w-3.5" />}
-                            Mark Complete
-                          </button>
-                        ) : (
-                          <span className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-zinc-500 bg-zinc-100/80 rounded-lg">
-                            <CheckCircle2 className="h-3.5 w-3.5 text-zinc-400" /> Completed
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                ))
-             )}
-           </div>
-        </div>
+              ))
+            )}
+          </div>
+        </section>
       </div>
 
       {/* Create Event Modal */}
@@ -329,6 +449,29 @@ const OrganizerDashboard = ({
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onSuccess={() => fetchDashboard()}
+      />
+
+      {/* Confirmation Modal */}
+      <ConfirmModal
+        isOpen={confirmModal.isOpen}
+        onClose={() => setConfirmModal({ isOpen: false, type: "delete", eventId: "", eventTitle: "" })}
+        onConfirm={() => {
+          if (confirmModal.type === "delete") {
+            handleDeleteEvent(confirmModal.eventId);
+          } else {
+            handleCompleteEvent(confirmModal.eventId);
+          }
+        }}
+        title={confirmModal.type === "delete" ? "Delete Event" : "Complete Event"}
+        message={
+          confirmModal.type === "delete"
+            ? `Are you sure you want to permanently delete "${confirmModal.eventTitle}"? This action cannot be undone.`
+            : `Mark "${confirmModal.eventTitle}" as completed? This will close the event for new applications.`
+        }
+        confirmText={confirmModal.type === "delete" ? "Delete Event" : "Mark Complete"}
+        cancelText="Cancel"
+        variant={confirmModal.type === "delete" ? "danger" : "default"}
+        loading={confirmModal.type === "delete" ? deletingEvent === confirmModal.eventId : completingEvent === confirmModal.eventId}
       />
     </div>
   );

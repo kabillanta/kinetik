@@ -101,28 +101,44 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const userDoc = await getDoc(doc(db, "users", uid));
         if (userDoc.exists()) {
           const data = userDoc.data();
-          if (data.onboardingCompleted) {
-            const profile = {
-              uid,
-              email: data.email,
-              displayName: data.displayName,
-              role: data.role,
-              bio: data.bio || "",
-              location: data.location || "",
-              skills: data.skills || [],
-              onboardingCompleted: true,
-            } as UserProfile;
-            setUserProfileState(profile);
-            if (data.role) {
-              localStorage.setItem("kinetik_user_role", data.role);
-            }
-            setProfileFetchDone(true);
-            return profile;
+          // Return profile with whatever onboarding status exists
+          const profile = {
+            uid,
+            email: data.email,
+            displayName: data.displayName,
+            role: data.role,
+            bio: data.bio || "",
+            location: data.location || "",
+            skills: data.skills || [],
+            onboardingCompleted: data.onboardingCompleted ?? false,
+          } as UserProfile;
+          setUserProfileState(profile);
+          if (data.role) {
+            localStorage.setItem("kinetik_user_role", data.role);
           }
+          setProfileFetchDone(true);
+          return profile;
         }
-        // User not in Neo4j AND not in Firestore (or not onboarded) — genuinely new
+        
+        // User not in Neo4j AND not in Firestore — genuinely new user
+        // Create minimal Firestore doc to track this user
+        const currentUser = auth.currentUser;
+        const minimalProfile = {
+          uid,
+          email: currentUser?.email || null,
+          displayName: currentUser?.displayName || null,
+          onboardingCompleted: false,
+          createdAt: new Date().toISOString(),
+        };
+        
+        try {
+          await setDoc(doc(db, "users", uid), minimalProfile);
+        } catch (firestoreErr) {
+          console.warn("Failed to create minimal Firestore doc:", firestoreErr);
+        }
+        
         setProfileFetchDone(true);
-        return null;
+        return null; // Return null to trigger onboarding redirect
       }
       
       // Other HTTP errors (500, 503, 403, 401 etc.) — backend problem, don't redirect

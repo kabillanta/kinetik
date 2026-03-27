@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useAuth } from "@/lib/auth-context";
-import { Github, Loader2, ArrowLeft } from "lucide-react";
+import { Github, Loader2, AlertCircle } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/components/Toast";
@@ -11,6 +11,7 @@ import { motion } from "framer-motion";
 export default function LoginPage() {
   const { signInWithGoogle, user, userProfile, loading, profileFetchDone } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const router = useRouter();
   const { toast } = useToast();
 
@@ -30,13 +31,17 @@ export default function LoginPage() {
 
   const handleGoogleLogin = async () => {
     setIsLoading(true);
+    setError(null);
     try {
       await signInWithGoogle();
       toast("Welcome back!", "success");
       // Don't redirect here - let the useEffect handle it after profile loads
       // This prevents racing past the onboarding check
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Login Failed:", error);
+      const errorMessage = error instanceof Error ? error.message : "Login failed. Please try again.";
+      setError(errorMessage);
+      toast(errorMessage, "error");
       setIsLoading(false);
     }
   };
@@ -69,6 +74,14 @@ export default function LoginPage() {
               Sign in to your dashboard to manage events or track applications.
             </p>
           </div>
+
+          {/* Error Message */}
+          {error && (
+            <div className="mb-6 flex items-center gap-3 rounded-2xl border border-red-200 bg-red-50 p-4 text-red-600">
+              <AlertCircle className="h-5 w-5 flex-shrink-0" />
+              <span className="text-sm font-medium">{error}</span>
+            </div>
+          )}
 
           {/* Actions */}
           <div className="space-y-4">

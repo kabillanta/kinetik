@@ -25,20 +25,64 @@ export default function ProtectedLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { user, loading, logout, userProfile } = useAuth();
+  const { user, loading, logout, userProfile, profileFetchDone } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
 
-  const isOrganizerMode = pathname?.startsWith("/organizer") || false;
+  // Shared pages that exist in both modes
+  const sharedPages = ["/profile", "/notifications"];
+  const isSharedPage = sharedPages.some(p => pathname === p);
+  
+  // Track organizer mode with localStorage persistence
+  const [isOrganizerMode, setIsOrganizerMode] = useState(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("kinetik-mode") === "organizer";
+    }
+    return false;
+  });
 
-  // Backup Client Check (in case Middleware misses something)
+  // Update mode based on pathname (only for non-shared pages)
+  useEffect(() => {
+    if (!pathname) return;
+    
+    if (pathname.startsWith("/organizer")) {
+      setIsOrganizerMode(true);
+      localStorage.setItem("kinetik-mode", "organizer");
+    } else if (!isSharedPage) {
+      // Only switch to volunteer mode if navigating to a volunteer-specific page
+      setIsOrganizerMode(false);
+      localStorage.setItem("kinetik-mode", "volunteer");
+    }
+  }, [pathname, isSharedPage]);
+
+  const isOnboardingPage = pathname?.includes("/onboarding") || false;
+
+  // Generate unique noise pattern seed from user ID
+  const getNoisePatternSeed = () => {
+    if (!user?.uid) return 0;
+    return user.uid.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) % 360;
+  };
+
+  // Redirect to landing page if not authenticated
   useEffect(() => {
     if (!loading && !user) {
-      router.push("/login");
+      router.push("/");
     }
   }, [user, loading, router]);
 
-  if (loading) {
+  // Redirect to onboarding if profile incomplete (and not already on onboarding page)
+  useEffect(() => {
+    if (!loading && user && profileFetchDone && !isOnboardingPage) {
+      const needsOnboarding = !userProfile || !userProfile.onboardingCompleted;
+      if (needsOnboarding) {
+        router.push("/onboarding");
+      }
+    }
+  }, [user, loading, profileFetchDone, userProfile, isOnboardingPage, router]);
+
+  // Show loading while checking auth state OR while fetching profile
+  // Exception: Don't block onboarding page render
+  if (loading || (!profileFetchDone && !isOnboardingPage)) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-[#F5F5F7]">
         <div className="flex flex-col items-center gap-6">
@@ -50,7 +94,7 @@ export default function ProtectedLayout({
             ></div>
           </div>
           <p className="text-xs font-bold tracking-widest text-[#86868B] uppercase animate-pulse">
-            Verifying Credentials
+            {loading ? "Verifying Credentials" : "Loading Profile"}
           </p>
         </div>
       </div>
@@ -59,7 +103,12 @@ export default function ProtectedLayout({
 
   if (!user) return null;
 
-  if (pathname?.includes("/onboarding")) {
+  // Block non-onboarding pages if onboarding not complete
+  if (!isOnboardingPage && (!userProfile || !userProfile.onboardingCompleted)) {
+    return null; // Will be redirected by useEffect above
+  }
+
+  if (isOnboardingPage) {
     return (
       <div className="flex min-h-screen bg-[#F5F5F7] text-[#1D1D1F] font-sans antialiased selection:bg-blue-200">
         <main className="flex-1 overflow-y-auto relative w-full">
@@ -71,9 +120,9 @@ export default function ProtectedLayout({
   }
 
   return (
-    <div className="flex min-h-screen bg-[#F5F5F7] text-[#1D1D1F] font-sans antialiased selection:bg-blue-200">
-      {/* Sidebar - Desktop */}
-      <aside className="hidden w-64 border-r border-black/[0.06] bg-white/80 backdrop-blur-3xl md:flex flex-col z-50 relative">
+    <div className="flex h-screen bg-[#F5F5F7] text-[#1D1D1F] font-sans antialiased selection:bg-blue-200">
+      {/* Sidebar - Desktop (fixed to viewport) */}
+      <aside className="hidden w-64 h-screen sticky top-0 border-r border-black/[0.06] bg-white/80 backdrop-blur-3xl md:flex flex-col z-50">
         <div className="flex h-20 items-center px-6 border-b border-black/[0.04]">
           <div className="flex items-center gap-3">
             <div className="h-8 w-8 rounded-xl bg-gradient-to-tr from-zinc-800 to-black flex items-center justify-center shadow-md">
@@ -226,8 +275,28 @@ export default function ProtectedLayout({
       </aside>
 
       {/* Main Content Area */}
-      <main className="flex-1 overflow-y-auto bg-[#F5F5F7] relative">
-        <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 pointer-events-none mix-blend-overlay"></div>
+      <main className="flex-1 h-screen overflow-y-auto bg-[#F5F5F7] relative">
+        <div 
+          className="absolute inset-0 opacity-[0.015] pointer-events-none mix-blend-overlay"
+          style={{
+            backgroundImage: `
+              repeating-linear-gradient(
+                ${getNoisePatternSeed()}deg,
+                transparent,
+                transparent 2px,
+                rgba(0, 0, 0, 0.03) 2px,
+                rgba(0, 0, 0, 0.03) 4px
+              ),
+              repeating-linear-gradient(
+                ${getNoisePatternSeed() + 90}deg,
+                transparent,
+                transparent 2px,
+                rgba(0, 0, 0, 0.03) 2px,
+                rgba(0, 0, 0, 0.03) 4px
+              )
+            `
+          }}
+        ></div>
         <div className="relative z-10 w-full min-h-screen pb-24 md:pb-16">
           {children}
         </div>
