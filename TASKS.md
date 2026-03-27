@@ -200,20 +200,9 @@
 
 ## 🟣 PERFORMANCE OPTIMIZATIONS
 
-### 32. **[PERF] Use Next.js Image Component**
-- **Issue**: Raw `<img>` tags cause layout shift and no optimization
-- **Location**: `app/(protected)/layout.tsx` line 248, profile pages
-- **Fix**:
-```tsx
-import Image from 'next/image';
-<Image 
-  src={imageUrl} 
-  alt="Profile" 
-  width={128} 
-  height={128} 
-  className="rounded-full object-cover"
-/>
-```
+### 32. ✅ **[PERF] Use Next.js Image Component** - IMPLEMENTED
+- **Location**: `app/(protected)/layout.tsx`, `app/(protected)/profile/page.tsx`, `app/(protected)/organizer/events/page.tsx`
+- **Implementation**: Replaced all `<img>` tags with Next.js `<Image>` component for automatic optimization
 
 ### 33. **[PERF] Code-Split Lucide Icons**
 - **Issue**: Importing 18+ icons even when only 4 used
@@ -237,9 +226,9 @@ const [stats, events] = await Promise.all([
 - **Issue**: App completely fails offline
 - **Fix**: Next.js PWA plugin with basic caching
 
-### 36. **[BACKEND] Consolidate N+1 Queries in Organizer Dashboard**
-- **Issue**: `backend/routers/organizers.py` makes 3 separate DB calls per request
-- **Fix**: Combine into single Cypher query or batch transaction
+### 36. ✅ **[BACKEND] Consolidate N+1 Queries in Organizer Dashboard** - IMPLEMENTED
+- **Location**: `backend/routers/organizers.py`
+- **Implementation**: Combined 3 separate DB calls into a single transaction with `begin_transaction()`, added proper logging
 
 ---
 

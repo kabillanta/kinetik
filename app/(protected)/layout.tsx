@@ -4,17 +4,14 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { useRouter, usePathname } from "next/navigation";
+import Image from "next/image";
 import {
   LayoutDashboard,
   User,
   LogOut,
-  Settings,
   Calendar,
   ClipboardList,
   BarChart3,
-  ArrowRightLeft,
-  Menu,
-  X,
   Bell,
 } from "lucide-react";
 import React from "react";
@@ -247,12 +244,14 @@ export default function ProtectedLayout({
 
         <div className="p-4 border-t border-black/[0.04]">
           <div className="flex items-center gap-3 rounded-2xl bg-white p-3 border border-black/[0.04] shadow-sm">
-            <div className="h-10 w-10 rounded-full bg-gradient-to-tr from-zinc-200 to-zinc-300 flex items-center justify-center flex-shrink-0 overflow-hidden">
+            <div className="h-10 w-10 rounded-full bg-gradient-to-tr from-zinc-200 to-zinc-300 flex items-center justify-center flex-shrink-0 overflow-hidden relative">
               {userProfile?.imageUrl || user?.photoURL ? (
-                <img
+                <Image
                   src={userProfile?.imageUrl || user?.photoURL || ""}
                   alt="Profile"
-                  className="h-full w-full object-cover"
+                  fill
+                  sizes="40px"
+                  className="object-cover"
                   referrerPolicy="no-referrer"
                 />
               ) : (

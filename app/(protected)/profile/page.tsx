@@ -4,6 +4,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { useToast } from "@/components/Toast";
+import Image from "next/image";
 import { Camera, MapPin, Sparkles, AlertCircle, Loader2, Save, User as UserIcon, Mail, Briefcase, ChevronRight, Link as LinkIcon, Github, Linkedin, Clock, Star } from "lucide-react";
 import Link from "next/link";
 import { API_BASE_URL } from "@/lib/api-config";
@@ -237,9 +238,9 @@ export default function ProfilePage() {
                   onClick={handleImageUrlChange}
                   title="Change Profile Picture"
                 >
-                  <div className="h-32 w-32 rounded-full overflow-hidden border-4 border-white shadow-xl bg-zinc-100 flex items-center justify-center">
+                  <div className="h-32 w-32 rounded-full overflow-hidden border-4 border-white shadow-xl bg-zinc-100 flex items-center justify-center relative">
                     {imageUrl ? (
-                      <img src={imageUrl} alt="Profile" className="h-full w-full object-cover" />
+                      <Image src={imageUrl} alt="Profile" fill sizes="128px" className="object-cover" />
                     ) : (
                       <UserIcon className="h-12 w-12 text-zinc-400" />
                     )}

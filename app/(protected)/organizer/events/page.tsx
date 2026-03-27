@@ -2,6 +2,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import Image from "next/image";
 import { 
   Calendar, 
   Plus, 
@@ -552,12 +553,14 @@ function ApplicationCard({ application, onAccept, onReject, isLoading }: Applica
   return (
     <div className="flex flex-col sm:flex-row sm:items-center justify-between p-5 rounded-2xl bg-white border border-black/[0.04] gap-4 hover:shadow-md transition-all">
       <div className="flex items-center gap-4">
-        <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-zinc-100 to-zinc-200 flex items-center justify-center text-base font-bold text-zinc-600 overflow-hidden">
+        <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-zinc-100 to-zinc-200 flex items-center justify-center text-base font-bold text-zinc-600 overflow-hidden relative">
           {application.volunteer_photo ? (
-            <img 
+            <Image 
               src={application.volunteer_photo} 
               alt={application.volunteer_name}
-              className="h-full w-full object-cover"
+              fill
+              sizes="48px"
+              className="object-cover"
             />
           ) : (
             application.volunteer_name.substring(0, 2).toUpperCase()

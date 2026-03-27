@@ -1,20 +1,24 @@
 from fastapi import APIRouter, Depends, HTTPException
 from database import get_db
 from dependencies import get_current_user
+import logging
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/organizers", tags=["organizers"])
 
 @router.get("/{user_id}/dashboard")
 def get_organizer_dashboard(user_id: str, current_user: str = Depends(get_current_user)):
     """
-    Get stats and recent applications for an organizer's events.
+    Get stats, recent applications, and events for an organizer.
+    Uses a single database transaction with multiple queries for efficiency.
     """
     if current_user != user_id:
         raise HTTPException(status_code=403, detail="Forbidden")
         
     driver = get_db()
     if not driver:
-        return {"stats": {"active_events": 0, "pending_applications": 0, "total_volunteers": 0}, "applications": []}
+        return {"stats": {"active_events": 0, "pending_applications": 0, "total_volunteers": 0}, "applications": [], "recent_events": []}
     
     stats_query = """
     MATCH (o:User {id: $user_id})-[:ORGANIZED]->(e:Event)
@@ -45,12 +49,17 @@ def get_organizer_dashboard(user_id: str, current_user: str = Depends(get_curren
     """
     
     try:
+        # Single transaction for all queries
         with driver.session() as session:
-            stats_res = session.run(stats_query, user_id=user_id).single()
+            with session.begin_transaction() as tx:
+                stats_res = tx.run(stats_query, user_id=user_id).single()
+                apps_res = list(tx.run(apps_query, user_id=user_id))
+                events_res = list(tx.run(events_query, user_id=user_id))
+            
             active_events = stats_res["active_events"] if stats_res else 0
             pending_apps = stats_res["pending_applications"] if stats_res else 0
+            total_volunteers = stats_res["total_volunteers"] if stats_res else 0
             
-            apps_res = session.run(apps_query, user_id=user_id)
             applications = []
             for r in apps_res:
                 applications.append({
@@ -62,10 +71,9 @@ def get_organizer_dashboard(user_id: str, current_user: str = Depends(get_curren
                     "skills": r.get("volunteer_skills", [])
                 })
                 
-            events_res = session.run(events_query, user_id=user_id)
-            active_events_list = []
+            recent_events = []
             for r in events_res:
-                active_events_list.append({
+                recent_events.append({
                     "id": r["id"],
                     "title": r["title"] or "Untitled Event",
                     "role": r["role"],
@@ -79,16 +87,16 @@ def get_organizer_dashboard(user_id: str, current_user: str = Depends(get_curren
             "stats": {
                 "active_events": active_events,
                 "pending_applications": pending_apps,
-                "total_volunteers": stats_res["total_volunteers"] if stats_res else 0
+                "total_volunteers": total_volunteers
             },
             "applications": applications,
-            "recent_events": active_events_list
+            "recent_events": recent_events
         }
     except HTTPException:
         raise
     except Exception as e:
-        print("db error:", str(e))
-        return {"stats": {"active_events": 0, "pending_applications": 0, "total_volunteers": 0}, "applications": []}
+        logger.error(f"Organizer dashboard error: {str(e)}", exc_info=True)
+        return {"stats": {"active_events": 0, "pending_applications": 0, "total_volunteers": 0}, "applications": [], "recent_events": []}
 
 @router.get("/{user_id}/events")
 def get_organizer_events(user_id: str, current_user: str = Depends(get_current_user)):
@@ -131,6 +139,7 @@ def get_organizer_events(user_id: str, current_user: str = Depends(get_current_u
     except HTTPException:
         raise
     except Exception as e:
+        logger.error(f"Organizer events error: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/{user_id}/analytics")
@@ -166,4 +175,5 @@ def get_organizer_analytics(user_id: str, current_user: str = Depends(get_curren
     except HTTPException:
         raise
     except Exception as e:
+        logger.error(f"Organizer analytics error: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
