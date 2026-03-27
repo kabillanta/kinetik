@@ -84,6 +84,15 @@ def get_event_detail(event_id: str, current_user: str = Depends(get_current_user
     if not driver:
         raise HTTPException(status_code=503, detail="Database connection failed")
 
+    # First verify user has access to this event
+    visibility_query = """
+    MATCH (e:Event {id: $event_id})
+    WHERE e.status = 'OPEN'
+       OR EXISTS { MATCH (u:User {id: $user_id})-[:ORGANIZED]->(e) }
+       OR EXISTS { MATCH (u:User {id: $user_id})-[:APPLIED_FOR]->(e) }
+    RETURN e.id AS id
+    """
+
     query = """
     MATCH (e:Event {id: $event_id})
     OPTIONAL MATCH (o:User)-[:ORGANIZED]->(e)
@@ -97,6 +106,11 @@ def get_event_detail(event_id: str, current_user: str = Depends(get_current_user
     """
     try:
         with driver.session() as session:
+            # Check visibility first
+            visible = session.run(visibility_query, event_id=event_id, user_id=current_user).single()
+            if not visible:
+                raise HTTPException(status_code=404, detail="Event not found")
+            
             result = session.run(query, event_id=event_id).single()
             if not result:
                 raise HTTPException(status_code=404, detail="Event not found")

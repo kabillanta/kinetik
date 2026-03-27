@@ -35,20 +35,12 @@
 - **Location**: `backend/routers/events.py`
 - **Fix Applied**: Removed 4 duplicate `except HTTPException: raise` blocks
 
-### 7. **[API] Missing Authorization Checks**
-- **Location**: Multiple backend endpoints
-- **Impact**: Any authenticated user can view any other user's dashboard/recommendations
-- **Examples**:
-  - `GET /api/organizers/{user_id}/dashboard` — checks `current_user != user_id` but should verify role
-  - `GET /api/events/{event_id}` — requires auth but doesn't check if user should see this event
-- **Fix**: Add role and ownership verification:
-```python
-@router.get("/{user_id}/dashboard")
-def get_organizer_dashboard(user_id: str, current_user: str = Depends(get_current_user)):
-    if current_user != user_id:
-        raise HTTPException(status_code=403, detail="Forbidden")
-    # Also verify user has organizer role in DB
-```
+### 7. ✅ **[API] Missing Authorization Checks** — FIXED
+- **Location**: `backend/routers/events.py`, `backend/routers/reviews.py`
+- **Fix Applied**:
+  - Added visibility check to `GET /events/{event_id}` - only OPEN events or events user participates in
+  - Added participation verification to `POST /reviews` - both users must have participated
+  - Added participation check to `GET /reviews/events/{event_id}/pending`
 
 ---
 
@@ -58,22 +50,13 @@ def get_organizer_dashboard(user_id: str, current_user: str = Depends(get_curren
 - **Location**: Created `lib/api-client.ts`
 - **Implementation**: Full API client with token refresh, typed responses, convenience methods (`api.get`, `api.post`, etc.), proper error handling with `ApiError` class
 
-### 9. **[STATE] Implement Data Caching with SWR/React Query**
-- **Location**: Every dashboard page refetches all data on mount
-- **Why it matters**: Unnecessary API calls, slow navigation, stale data after mutations
-- **Suggested implementation**:
-```typescript
-import useSWR from 'swr';
-
-const { data: stats, mutate } = useSWR(
-  user ? `/api/volunteers/${user.uid}/dashboard` : null,
-  fetcher,
-  { revalidateOnFocus: false, dedupingInterval: 30000 }
-);
-
-// After mutation:
-mutate(); // Revalidate
-```
+### 9. ✅ **[STATE] Implement Data Caching with SWR/React Query** — IMPLEMENTED
+- **Location**: Created `lib/hooks/useSWR.ts`
+- **Implementation**:
+  - SWR integration with Firebase auth token
+  - Custom hooks for all major data endpoints (dashboard, applications, history, analytics)
+  - Default configuration with deduping, error retry, and smart revalidation
+  - Per-hook configuration for different caching strategies
 
 ### 10. ✅ **[CORS] Overly Permissive Backend CORS** — FIXED
 - **Location**: `backend/main.py`

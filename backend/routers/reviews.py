@@ -34,12 +34,13 @@ def create_review(review: ReviewCreate, current_user: str = Depends(get_current_
     if not driver:
         raise HTTPException(status_code=503, detail="Database connection failed")
 
-    # Verify the event exists and the user participated
+    # Verify the event exists, is completed, and both users participated
     verify_query = """
     MATCH (e:Event {id: $event_id})
-    OPTIONAL MATCH (reviewer:User {id: $reviewer_id})
-    OPTIONAL MATCH (reviewee:User {id: $reviewee_id})
-    RETURN e, reviewer, reviewee
+    WHERE e.status = 'COMPLETED'
+    OPTIONAL MATCH (reviewer:User {id: $reviewer_id})-[r1:APPLIED_FOR|ORGANIZED]->(e)
+    OPTIONAL MATCH (reviewee:User {id: $reviewee_id})-[r2:APPLIED_FOR|ORGANIZED]->(e)
+    RETURN e, reviewer, reviewee, r1, r2
     """
 
     try:
@@ -52,11 +53,11 @@ def create_review(review: ReviewCreate, current_user: str = Depends(get_current_
             ).single()
 
             if not result or not result["e"]:
-                raise HTTPException(status_code=404, detail="Event not found")
-            if not result["reviewer"]:
-                raise HTTPException(status_code=404, detail="Reviewer not found")
-            if not result["reviewee"]:
-                raise HTTPException(status_code=404, detail="Reviewee not found")
+                raise HTTPException(status_code=404, detail="Event not found or not completed")
+            if not result["reviewer"] or not result["r1"]:
+                raise HTTPException(status_code=403, detail="You did not participate in this event")
+            if not result["reviewee"] or not result["r2"]:
+                raise HTTPException(status_code=404, detail="Reviewee did not participate in this event")
 
             # Check if review already exists
             existing_query = """
@@ -233,6 +234,7 @@ def get_user_review_stats(user_id: str, current_user: str = Depends(get_current_
 def get_pending_reviews(event_id: str, current_user: str = Depends(get_current_user)):
     """
     Get list of users the current user can review for a completed event.
+    Only returns results if current user participated in the event.
     """
     driver = get_db()
     if not driver:
@@ -242,11 +244,14 @@ def get_pending_reviews(event_id: str, current_user: str = Depends(get_current_u
     MATCH (e:Event {id: $event_id})
     WHERE e.status = 'COMPLETED'
     
+    // Verify current user participated in this event
+    MATCH (me:User {id: $user_id})-[:APPLIED_FOR|ORGANIZED]->(e)
+    
     // Get participants the user hasn't reviewed yet
     MATCH (participant:User)-[:APPLIED_FOR|ORGANIZED]->(e)
     WHERE participant.id <> $user_id
     AND NOT EXISTS {
-        MATCH (me:User {id: $user_id})-[r:REVIEWED {event_id: $event_id}]->(participant)
+        MATCH (me)-[r:REVIEWED {event_id: $event_id}]->(participant)
     }
     
     RETURN 
