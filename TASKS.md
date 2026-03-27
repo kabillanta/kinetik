@@ -160,25 +160,25 @@
 - **Location**: Created `components/ui/EmptyState.tsx`
 - **Implementation**: Reusable EmptyState component with variants for events, applications, notifications, volunteers, search, history. Includes icons, CTAs, and customization options.
 
-### 24. **[UX] Mobile FAB for Event Creation**
-- **Issue**: "Create Event" only in desktop sidebar, hard to find on mobile
-- **Fix**: Add floating action button on mobile organizer dashboard
+### 24. ✅ **[UX] Mobile FAB for Event Creation** — IMPLEMENTED
+- **Location**: `app/(protected)/organizer/dashboard/page.tsx`
+- **Implementation**: Added floating action button (FAB) visible only on mobile screens, positioned bottom-right with Plus icon
 
 ### 25. ✅ **[UX] Consistent Breadcrumb Navigation** — IMPLEMENTED
 - **Location**: Created `components/ui/Breadcrumbs.tsx`
 - **Implementation**: Breadcrumb component with Home icon, configurable items, pre-built configs for all pages. Added to applications and notifications pages.
 
-### 26. **[UX] Skill Input Duplicate Feedback**
-- **Issue**: Adding duplicate skill silently fails
-- **Fix**: Show toast: "Skill already added"
+### 26. ✅ **[UX] Skill Input Duplicate Feedback** — IMPLEMENTED
+- **Location**: `app/(protected)/onboarding/page.tsx`
+- **Implementation**: Shows warning toast "Skill already added" when user tries to add duplicate skill
 
-### 27. **[UX] Disabled Button States**
-- **Issue**: `disabled:opacity-50` without `disabled:cursor-not-allowed`
-- **Fix**: Update all buttons (partially done - new components include this)
+### 27. ✅ **[UX] Disabled Button States** — IMPLEMENTED
+- **Location**: All button components across the app
+- **Implementation**: Added `disabled:cursor-not-allowed` alongside existing `disabled:opacity-50`
 
-### 28. **[UX] Progress Bar on Signup**
-- **Issue**: Signup has steps but no visual progress indicator (unlike onboarding)
-- **Fix**: Reuse onboarding progress bar component
+### 28. ✅ **[UX] Progress Bar on Signup** — IMPLEMENTED
+- **Location**: `app/(public)/signup/page.tsx`
+- **Implementation**: Added step indicator showing "Step 1 of 2" with animated progress dots
 
 ### 29. ✅ **[UX] Loading State During Search Debounce** — IMPLEMENTED
 - **Location**: `lib/hooks/useSearch.ts` and `components/ui/FilterBar.tsx`
@@ -188,12 +188,13 @@
 - **Location**: Updated `app/(protected)/notifications/page.tsx`
 - **Implementation**: "Mark All as Read" button in header, batch marks all unread notifications
 
-### 31. **[A11Y] Add ARIA Labels and Keyboard Navigation**
-- **Issue**: No ARIA labels, inconsistent keyboard navigation
-- **Fix**:
-  - Add `aria-label` to icon buttons
-  - Ensure Tab order is logical
-  - Add `role="alert"` to error messages
+### 31. ✅ **[A11Y] Add ARIA Labels and Keyboard Navigation** — IMPLEMENTED
+- **Location**: Multiple files (`layout.tsx`, `signup/page.tsx`, `login/page.tsx`, `onboarding/page.tsx`)
+- **Implementation**:
+  - Added `aria-label` to icon buttons (logout, mode toggle, back navigation)
+  - Added `aria-pressed` to toggle buttons
+  - Added `role="alert"` to error message containers
+  - Added `aria-hidden="true"` to decorative icons
 
 ---
 

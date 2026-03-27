@@ -150,6 +150,8 @@ export default function ProtectedLayout({
             {/* Volunteer Button */}
             <button
               onClick={() => { if (isOrganizerMode) router.push("/dashboard"); }}
+              aria-label="Switch to volunteer mode"
+              aria-pressed={!isOrganizerMode}
               className={`relative z-10 flex-1 py-2.5 text-[13px] font-semibold tracking-wide rounded-xl cursor-default transition-all duration-500 ease-out group ${
                 !isOrganizerMode 
                   ? 'text-zinc-900 cursor-default' 
@@ -164,6 +166,8 @@ export default function ProtectedLayout({
             {/* Organizer Button */}
             <button
               onClick={() => { if (!isOrganizerMode) router.push("/organizer/dashboard"); }}
+              aria-label="Switch to organizer mode"
+              aria-pressed={isOrganizerMode}
               className={`relative z-10 flex-1 py-2.5 text-[13px] font-semibold tracking-wide rounded-xl cursor-default transition-all duration-500 ease-out group ${
                 isOrganizerMode 
                   ? 'text-zinc-900 cursor-default' 
@@ -267,6 +271,7 @@ export default function ProtectedLayout({
               onClick={logout}
               className="p-2 text-[#86868B] hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
               title="Sign Out"
+              aria-label="Sign out of your account"
             >
               <LogOut className="h-4 w-4" />
             </button>

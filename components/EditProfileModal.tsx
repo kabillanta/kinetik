@@ -84,7 +84,7 @@ export default function EditProfileModal({ isOpen, onClose, onSave }: EditProfil
             <button 
                 type="submit"
                 disabled={isLoading}
-                className="w-full flex items-center justify-center gap-2 rounded-lg bg-cyan-600 py-2.5 text-sm font-bold text-white hover:bg-cyan-500 transition-all disabled:opacity-50"
+                className="w-full flex items-center justify-center gap-2 rounded-lg bg-cyan-600 py-2.5 text-sm font-bold text-white hover:bg-cyan-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
                 {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                 Save & Find Matches

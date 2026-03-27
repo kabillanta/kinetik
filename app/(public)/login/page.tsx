@@ -77,8 +77,8 @@ export default function LoginPage() {
 
           {/* Error Message */}
           {error && (
-            <div className="mb-6 flex items-center gap-3 rounded-2xl border border-red-200 bg-red-50 p-4 text-red-600">
-              <AlertCircle className="h-5 w-5 flex-shrink-0" />
+            <div role="alert" className="mb-6 flex items-center gap-3 rounded-2xl border border-red-200 bg-red-50 p-4 text-red-600">
+              <AlertCircle className="h-5 w-5 flex-shrink-0" aria-hidden="true" />
               <span className="text-sm font-medium">{error}</span>
             </div>
           )}
@@ -88,7 +88,7 @@ export default function LoginPage() {
             <button
               onClick={handleGoogleLogin}
               disabled={isLoading}
-              className="flex h-14 w-full items-center justify-center gap-3 rounded-2xl bg-white border border-slate-200 px-6 text-sm font-bold text-slate-900 transition-all hover:bg-slate-50 hover:border-slate-300 shadow-sm disabled:opacity-50"
+              className="flex h-14 w-full items-center justify-center gap-3 rounded-2xl bg-white border border-slate-200 px-6 text-sm font-bold text-slate-900 transition-all hover:bg-slate-50 hover:border-slate-300 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isLoading ? (
                 <Loader2 className="h-5 w-5 animate-spin" />

@@ -18,9 +18,12 @@ import {
 import { API_BASE_URL } from "@/lib/api-config";
 import { motion, AnimatePresence } from "framer-motion";
 
+import { useToast } from "@/components/Toast";
+
 export default function OnboardingPage() {
   const router = useRouter();
   const { user, userProfile, refreshProfile, setUserProfile, setIsTransitioning } = useAuth();
+  const { toast } = useToast();
 
   // If user already completed onboarding, redirect to dashboard
   useEffect(() => {
@@ -48,8 +51,13 @@ export default function OnboardingPage() {
       e.type === "blur"
     ) {
       e.preventDefault();
-      if (currentSkill.trim() && !skills.includes(currentSkill.trim())) {
-        setSkills([...skills, currentSkill.trim()]);
+      const trimmedSkill = currentSkill.trim();
+      if (trimmedSkill) {
+        if (skills.includes(trimmedSkill)) {
+          toast("Skill already added", "warning");
+        } else {
+          setSkills([...skills, trimmedSkill]);
+        }
         setCurrentSkill("");
       }
     }
@@ -181,9 +189,10 @@ export default function OnboardingPage() {
               <motion.div 
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: 'auto' }}
+                role="alert"
                 className="mb-8 p-5 rounded-2xl bg-red-50 border border-red-100 text-red-600 flex items-start gap-4 shadow-xl shadow-red-500/5"
               >
-                <AlertCircle className="h-5 w-5 shrink-0 mt-0.5" />
+                <AlertCircle className="h-5 w-5 shrink-0 mt-0.5" aria-hidden="true" />
                 <p className="text-sm font-bold">{error}</p>
               </motion.div>
             )}

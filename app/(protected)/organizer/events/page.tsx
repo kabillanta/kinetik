@@ -464,7 +464,7 @@ function EventAccordion({
                 <button
                   onClick={onComplete}
                   disabled={isCompleting}
-                  className="p-2.5 rounded-xl bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition-colors disabled:opacity-50"
+                  className="p-2.5 rounded-xl bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   title="Mark Complete"
                 >
                   {isCompleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle className="h-4 w-4" />}
@@ -473,7 +473,7 @@ function EventAccordion({
               <button
                 onClick={onDelete}
                 disabled={isDeleting}
-                className="p-2.5 rounded-xl bg-red-50 text-red-600 hover:bg-red-100 transition-colors disabled:opacity-50"
+                className="p-2.5 rounded-xl bg-red-50 text-red-600 hover:bg-red-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 title="Delete Event"
               >
                 {isDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
@@ -587,7 +587,7 @@ function ApplicationCard({ application, onAccept, onReject, isLoading }: Applica
         <button 
           onClick={onAccept}
           disabled={isLoading}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-500 text-white font-semibold text-sm hover:bg-emerald-600 transition-all disabled:opacity-50 shadow-sm"
+          className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-500 text-white font-semibold text-sm hover:bg-emerald-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
         >
           {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
           Accept
@@ -595,7 +595,7 @@ function ApplicationCard({ application, onAccept, onReject, isLoading }: Applica
         <button 
           onClick={onReject}
           disabled={isLoading}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white border border-red-200 text-red-600 font-semibold text-sm hover:bg-red-50 transition-all disabled:opacity-50"
+          className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white border border-red-200 text-red-600 font-semibold text-sm hover:bg-red-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <XCircle className="h-4 w-4" />
           Reject

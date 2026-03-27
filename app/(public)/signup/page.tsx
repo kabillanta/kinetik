@@ -152,16 +152,36 @@ export default function SignupPage() {
       <div className="absolute bottom-0 left-0 h-[600px] w-[600px] bg-accent/5 blur-[120px] rounded-full pointer-events-none animate-blob" style={{ animationDelay: "2s" }} />
 
       {/* Navigation Header */}
-      <div className="relative z-10 w-full max-w-4xl mb-12 flex justify-between items-center">
+      <div className="relative z-10 w-full max-w-4xl mb-8 flex justify-between items-center">
         <button
           onClick={() => (step === 2 ? setStep(1) : router.push("/"))}
           className="inline-flex items-center text-sm font-bold text-slate-500 hover:text-slate-900 transition-colors"
+          aria-label={step === 2 ? "Go back to role selection" : "Go back to home page"}
         >
           <ArrowLeft className="mr-2 h-4 w-4" />{" "}
           {step === 2 ? "Back to Roles" : "Back to Home"}
         </button>
         <div className="h-10 w-10 rounded-xl bg-primary flex items-center justify-center shadow-lg shadow-primary/20">
            <span className="font-bold text-white">K</span>
+        </div>
+      </div>
+
+      {/* Progress Bar */}
+      <div className="relative z-10 w-full max-w-4xl mb-8">
+        <div className="flex items-center justify-center gap-3">
+          <span className="text-xs font-bold uppercase tracking-widest text-slate-400">
+            Step {step} of 2
+          </span>
+          <div className="flex gap-1.5">
+            {[1, 2].map((s) => (
+              <div
+                key={s}
+                className={`h-1.5 rounded-full transition-all duration-500 ${
+                  s <= step ? "w-10 bg-primary" : "w-3 bg-slate-200"
+                }`}
+              />
+            ))}
+          </div>
         </div>
       </div>
 
@@ -178,8 +198,8 @@ export default function SignupPage() {
 
       {/* Error Message */}
       {error && (
-        <div className="relative z-20 mb-8 flex items-center gap-3 rounded-2xl border border-red-500/20 bg-red-50 p-5 text-red-600 max-w-md mx-auto animate-in fade-in slide-in-from-top-2 shadow-xl shadow-red-500/5">
-          <AlertCircle className="h-5 w-5 flex-shrink-0" />
+        <div role="alert" className="relative z-20 mb-8 flex items-center gap-3 rounded-2xl border border-red-500/20 bg-red-50 p-5 text-red-600 max-w-md mx-auto animate-in fade-in slide-in-from-top-2 shadow-xl shadow-red-500/5">
+          <AlertCircle className="h-5 w-5 flex-shrink-0" aria-hidden="true" />
           <span className="text-sm font-bold">{error}</span>
         </div>
       )}
@@ -285,7 +305,7 @@ export default function SignupPage() {
             <button
               onClick={handleGoogleSignup}
               disabled={isLoading}
-              className="flex h-14 w-full items-center justify-center gap-4 rounded-2xl bg-white border border-slate-200 px-6 text-sm font-bold text-slate-900 transition-all hover:bg-slate-50 hover:border-slate-300 shadow-sm disabled:opacity-50"
+              className="flex h-14 w-full items-center justify-center gap-4 rounded-2xl bg-white border border-slate-200 px-6 text-sm font-bold text-slate-900 transition-all hover:bg-slate-50 hover:border-slate-300 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isLoading ? (
                 <Loader2 className="h-5 w-5 animate-spin" />
@@ -357,7 +377,7 @@ export default function SignupPage() {
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full rounded-2xl bg-slate-900 py-5 text-sm font-black text-white hover:bg-slate-800 transition-all flex items-center justify-center gap-3 shadow-xl shadow-slate-900/10 active:scale-95 disabled:opacity-50"
+                className="w-full rounded-2xl bg-slate-900 py-5 text-sm font-black text-white hover:bg-slate-800 transition-all flex items-center justify-center gap-3 shadow-xl shadow-slate-900/10 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isLoading ? (
                   <Loader2 className="h-5 w-5 animate-spin" />

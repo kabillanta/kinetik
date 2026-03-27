@@ -182,7 +182,7 @@ export default function EventDetailPage() {
               <button
                 onClick={handleApply}
                 disabled={applying}
-                className="flex items-center gap-2 px-8 py-3.5 rounded-full bg-black text-white font-bold hover:bg-zinc-800 transition-all shadow-lg disabled:opacity-50"
+                className="flex items-center gap-2 px-8 py-3.5 rounded-full bg-black text-white font-bold hover:bg-zinc-800 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {applying ? (
                   <Loader2 className="h-4 w-4 animate-spin" />

@@ -275,7 +275,7 @@ const OrganizerDashboard = ({
                           <button
                             onClick={() => handleApplicationAction(app.event_id, app.volunteer_id, "ACCEPTED")}
                             disabled={actionLoading === `${app.event_id}-${app.volunteer_id}-ACCEPTED`}
-                            className="h-9 w-9 rounded-lg bg-black hover:bg-zinc-800 flex items-center justify-center transition-colors disabled:opacity-50"
+                            className="h-9 w-9 rounded-lg bg-black hover:bg-zinc-800 flex items-center justify-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                             title="Accept"
                           >
                             {actionLoading === `${app.event_id}-${app.volunteer_id}-ACCEPTED` ? (
@@ -287,7 +287,7 @@ const OrganizerDashboard = ({
                           <button
                             onClick={() => handleApplicationAction(app.event_id, app.volunteer_id, "REJECTED")}
                             disabled={actionLoading === `${app.event_id}-${app.volunteer_id}-REJECTED`}
-                            className="h-9 w-9 rounded-lg bg-zinc-100 hover:bg-zinc-200 flex items-center justify-center transition-colors disabled:opacity-50"
+                            className="h-9 w-9 rounded-lg bg-zinc-100 hover:bg-zinc-200 flex items-center justify-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                             title="Reject"
                           >
                             {actionLoading === `${app.event_id}-${app.volunteer_id}-REJECTED` ? (
@@ -404,7 +404,7 @@ const OrganizerDashboard = ({
                           eventTitle: ev.title
                         })}
                         disabled={completingEvent === ev.id}
-                        className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-semibold text-black bg-zinc-100 hover:bg-zinc-200 rounded-lg transition-colors disabled:opacity-50"
+                        className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-semibold text-black bg-zinc-100 hover:bg-zinc-200 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         {completingEvent === ev.id ? (
                           <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -424,7 +424,7 @@ const OrganizerDashboard = ({
                         eventTitle: ev.title
                       })}
                       disabled={deletingEvent === ev.id}
-                      className={`group relative overflow-hidden ${ev.status === "COMPLETED" ? 'flex-1' : ''} flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-lg transition-all duration-300 disabled:opacity-50 border border-zinc-200 hover:border-red-200 hover:bg-red-50 text-zinc-500 hover:text-red-600`}
+                      className={`group relative overflow-hidden ${ev.status === "COMPLETED" ? 'flex-1' : ''} flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed border border-zinc-200 hover:border-red-200 hover:bg-red-50 text-zinc-500 hover:text-red-600`}
                     >
                       {deletingEvent === ev.id ? (
                         <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -473,6 +473,15 @@ const OrganizerDashboard = ({
         variant={confirmModal.type === "delete" ? "danger" : "default"}
         loading={confirmModal.type === "delete" ? deletingEvent === confirmModal.eventId : completingEvent === confirmModal.eventId}
       />
+
+      {/* Mobile FAB for Create Event */}
+      <button
+        onClick={() => setIsModalOpen(true)}
+        className="fixed bottom-6 right-6 md:hidden h-14 w-14 rounded-full bg-black text-white shadow-lg shadow-black/25 flex items-center justify-center hover:scale-105 active:scale-95 transition-transform z-50"
+        aria-label="Create new event"
+      >
+        <Plus className="h-6 w-6" />
+      </button>
     </div>
   );
 };

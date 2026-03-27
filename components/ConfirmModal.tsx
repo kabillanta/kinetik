@@ -111,7 +111,7 @@ export default function ConfirmModal({
             <button
               onClick={onClose}
               disabled={loading}
-              className="flex-shrink-0 p-1.5 text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100 rounded-lg transition-colors disabled:opacity-50"
+              className="flex-shrink-0 p-1.5 text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <X className="w-5 h-5" />
             </button>
@@ -122,7 +122,7 @@ export default function ConfirmModal({
             <button
               onClick={onClose}
               disabled={loading}
-              className="px-4 py-2.5 text-sm font-medium text-zinc-700 bg-zinc-100 hover:bg-zinc-200 rounded-lg transition-colors disabled:opacity-50"
+              className="px-4 py-2.5 text-sm font-medium text-zinc-700 bg-zinc-100 hover:bg-zinc-200 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {cancelText}
             </button>
@@ -130,7 +130,7 @@ export default function ConfirmModal({
               ref={confirmButtonRef}
               onClick={onConfirm}
               disabled={loading}
-              className={`px-4 py-2.5 text-sm font-medium text-white rounded-lg transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 flex items-center gap-2 ${styles.button}`}
+              className={`px-4 py-2.5 text-sm font-medium text-white rounded-lg transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 ${styles.button}`}
             >
               {loading && (
                 <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">

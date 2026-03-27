@@ -197,7 +197,7 @@ export default function ProfilePage() {
           <button
             onClick={saveProfile}
             disabled={isLoading}
-            className="flex items-center gap-2 rounded-xl bg-black px-6 py-2.5 text-white hover:bg-zinc-800 transition-all shadow-md font-medium disabled:opacity-50 h-[42px]"
+            className="flex items-center gap-2 rounded-xl bg-black px-6 py-2.5 text-white hover:bg-zinc-800 transition-all shadow-md font-medium disabled:opacity-50 disabled:cursor-not-allowed h-[42px]"
           >
             {isLoading ? (
               <Loader2 className="h-4 w-4 animate-spin" />

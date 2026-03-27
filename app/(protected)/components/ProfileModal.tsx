@@ -199,7 +199,7 @@ export function ProfileModal({
           <button
             onClick={saveProfile}
             disabled={isLoading}
-            className="px-6 py-2.5 rounded-xl bg-black text-white font-semibold disabled:opacity-50 hover:bg-zinc-800 transition-colors flex items-center justify-center min-w-[120px]"
+            className="px-6 py-2.5 rounded-xl bg-black text-white font-semibold disabled:opacity-50 disabled:cursor-not-allowed hover:bg-zinc-800 transition-colors flex items-center justify-center min-w-[120px]"
           >
             {isLoading ? (
               <div className="h-5 w-5 rounded-full border-2 border-white/30 border-t-white animate-spin" />

@@ -247,7 +247,7 @@ export default function CreateEventModal({ isOpen, onClose, onSuccess }: CreateE
 
                 <div className="pt-6 sm:hidden flex gap-4">
                     <button type="button" onClick={onClose} className="flex-1 py-4 text-[15px] font-bold text-zinc-600 bg-white hover:bg-zinc-50 border border-zinc-200 rounded-2xl transition-all shadow-sm">Cancel</button>
-                    <button type="submit" disabled={isLoading} className="flex-[2] flex items-center justify-center gap-2 rounded-2xl bg-black py-4 text-[15px] font-bold text-white transition-all disabled:opacity-50">Publish</button>
+                    <button type="submit" disabled={isLoading} className="flex-[2] flex items-center justify-center gap-2 rounded-2xl bg-black py-4 text-[15px] font-bold text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed">Publish</button>
                 </div>
             </form>
             </div>
@@ -258,7 +258,7 @@ export default function CreateEventModal({ isOpen, onClose, onSuccess }: CreateE
              <button type="button" onClick={onClose} className="px-5 py-2.5 rounded-full text-sm font-bold text-zinc-600 bg-white hover:bg-zinc-50 border border-transparent hover:border-black/[0.04] transition-all">
                 Discard Draft
              </button>
-             <button type="submit" disabled={isLoading} onClick={handleSubmit} className="px-6 py-2.5 flex items-center justify-center gap-2 rounded-full bg-black text-sm font-bold text-white hover:bg-zinc-800 transition-all disabled:opacity-50 shadow-md">
+             <button type="submit" disabled={isLoading} onClick={handleSubmit} className="px-6 py-2.5 flex items-center justify-center gap-2 rounded-full bg-black text-sm font-bold text-white hover:bg-zinc-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-md">
                  {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4 fill-white/20" />}
                  {isLoading ? "Publishing..." : "Publish Opportunity"}
              </button>
