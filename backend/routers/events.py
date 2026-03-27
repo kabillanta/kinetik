@@ -98,11 +98,13 @@ def get_event_detail(event_id: str, current_user: str = Depends(get_current_user
     OPTIONAL MATCH (o:User)-[:ORGANIZED]->(e)
     OPTIONAL MATCH (e)-[:REQUIRES_SKILL]->(s:Skill)
     OPTIONAL MATCH (v:User)-[:APPLIED_FOR]->(e)
+    OPTIONAL MATCH (current:User {id: $user_id})-[applied:APPLIED_FOR]->(e)
     RETURN e.id AS id, e.title AS title, e.description AS description, e.status AS status,
            e.role AS role, e.location AS location, e.date AS date, e.volunteers_needed AS volunteers_needed,
            o.name AS organizer_name, o.id AS organizer_id,
            collect(DISTINCT s.name) AS skills,
-           count(DISTINCT v) AS applicant_count
+           count(DISTINCT v) AS applicant_count,
+           applied IS NOT NULL AS user_has_applied
     """
     try:
         with driver.session() as session:
@@ -111,7 +113,7 @@ def get_event_detail(event_id: str, current_user: str = Depends(get_current_user
             if not visible:
                 raise HTTPException(status_code=404, detail="Event not found")
             
-            result = session.run(query, event_id=event_id).single()
+            result = session.run(query, event_id=event_id, user_id=current_user).single()
             if not result:
                 raise HTTPException(status_code=404, detail="Event not found")
             return {
@@ -128,6 +130,7 @@ def get_event_detail(event_id: str, current_user: str = Depends(get_current_user
                     "organizer_id": result["organizer_id"] or "",
                     "skills": result["skills"],
                     "applicant_count": result["applicant_count"],
+                    "user_has_applied": result["user_has_applied"],
                 }
             }
     except HTTPException:

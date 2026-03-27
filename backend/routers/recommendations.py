@@ -40,7 +40,8 @@ def get_user_event_recommendations(
       WHERE NOT (u)-[:APPLIED_FOR]->(e) AND e.status = 'OPEN'
       WITH e, total_event_skills, current_volunteers, count(s.name) AS matched_skills, collect(s.name) AS matched_tech_stack
       
-      RETURN e.id AS event_id, e.title AS title, e.role as role_needed, e.location as location, current_volunteers,
+      RETURN e.id AS event_id, e.title AS title, e.role as role_needed, e.location as location, 
+             current_volunteers, e.volunteers_needed AS volunteers_needed,
              matched_tech_stack,
              CASE
                WHEN total_event_skills = 0 THEN 1.0
@@ -63,7 +64,8 @@ def get_user_event_recommendations(
                     "match_score": record.get("match_score", 0.1),
                     "location": record.get("location") or "Remote",
                     "tech_stack": record.get("matched_tech_stack") or [],
-                    "current_volunteers": record.get("current_volunteers", 0)
+                    "current_volunteers": record.get("current_volunteers", 0),
+                    "volunteers_needed": record.get("volunteers_needed", 5)
                 })
             
         return {"data": recommendations}

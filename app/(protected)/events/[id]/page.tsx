@@ -19,6 +19,7 @@ interface EventDetail {
   organizer_id: string;
   skills: string[];
   applicant_count: number;
+  user_has_applied?: boolean;
 }
 
 export default function EventDetailPage() {
@@ -44,6 +45,9 @@ export default function EventDetailPage() {
         if (res.ok) {
           const data = await res.json();
           setEvent(data.event);
+          if (data.event.user_has_applied) {
+            setApplied(true);
+          }
         } else {
           toast("Event not found", "error");
           router.push("/dashboard");

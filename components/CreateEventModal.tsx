@@ -113,7 +113,7 @@ export default function CreateEventModal({ isOpen, onClose, onSuccess }: CreateE
           </div>
 
           {/* Scrolling Content Area */}
-          <div className="flex-1 overflow-y-auto w-full px-4 sm:px-10 py-8 lg:py-12 relative">
+          <div className="flex-1 overflow-y-auto w-full px-4 sm:px-10 py-8 lg:py-12 pb-24 sm:pb-12 relative">
             <div className="max-w-4xl mx-auto">
               <form onSubmit={handleSubmit} className="space-y-8 pb-4 sm:pb-12">
                 

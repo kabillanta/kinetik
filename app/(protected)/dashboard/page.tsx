@@ -33,6 +33,7 @@ interface Event {
   location: string;
   tech_stack: string[];
   current_volunteers?: number;
+  volunteers_needed?: number;
 }
 
 // --- Helper Components ---
@@ -262,7 +263,7 @@ const VolunteerDashboard = ({ user }: { user: User }) => {
                           </div>
                           <span className="text-sm font-semibold text-black">
                             <Users className="h-4 w-4 inline mr-1 text-[#86868B]" />
-                            {event.current_volunteers}
+                            {event.current_volunteers}/{event.volunteers_needed || 5}
                           </span>
                         </div>
                       )}
@@ -306,7 +307,7 @@ const VolunteerDashboard = ({ user }: { user: User }) => {
 
         {/* Confirmation Modal */}
         {selectedEventToApply && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40">
             <div className="bg-white rounded-3xl p-6 w-full max-w-md shadow-2xl animate-in zoom-in-95 duration-200">
               <h3 className="text-xl font-bold text-black mb-2">Confirm Application</h3>
               <p className="text-[#86868B] mb-6">
