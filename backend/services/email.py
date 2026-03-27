@@ -6,7 +6,7 @@ Can be easily swapped for SendGrid, AWS SES, or other providers.
 """
 
 import os
-from typing import Optional, Dict, Any, List
+from typing import Optional, Dict, List
 from datetime import datetime
 import logging
 
@@ -240,8 +240,6 @@ class EmailService:
         volunteer_skills: List[str],
     ) -> bool:
         """Notify organizer of new volunteer application."""
-        skills_html = ", ".join(volunteer_skills[:5]) if volunteer_skills else "Not specified"
-        
         subject = f"New Application: {volunteer_name} for {event_title}"
         html = f"""
         <!DOCTYPE html>

@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from database import get_db
 from dependencies import get_current_user
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Optional
 
 router = APIRouter(prefix="/api/volunteers", tags=["volunteers"])

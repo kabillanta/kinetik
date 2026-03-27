@@ -1,4 +1,5 @@
 import os
+import logging
 from fastapi import Header, HTTPException
 import firebase_admin
 from firebase_admin import credentials, auth as firebase_auth
@@ -24,8 +25,6 @@ try:
 except ValueError:
     # App already initialized
     pass
-
-import logging
 
 logger = logging.getLogger(__name__)
 
