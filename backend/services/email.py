@@ -6,7 +6,7 @@ Can be easily swapped for SendGrid, AWS SES, or other providers.
 """
 
 import os
-from typing import Optional, Dict, List
+from typing import Optional, List
 from datetime import datetime
 import logging
 
