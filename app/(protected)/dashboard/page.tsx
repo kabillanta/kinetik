@@ -53,50 +53,58 @@ const VolunteerDashboard = ({ user }: { user: User }) => {
   const { toast } = useToast();
 
   useEffect(() => {
-    const fetchStats = async () => {
-      if (!user) return;
-      try {
-        const token = await user.getIdToken();
-        const statsRes = await fetch(`${API_BASE_URL}/api/volunteers/${user.uid}/dashboard`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (statsRes.ok) {
-          const d = await statsRes.json();
-          if (d.stats) setStats(d.stats);
-        }
-      } catch (err) {
-        console.error("Dashboard stats fetch error:", err);
-      }
-    };
-    fetchStats();
-  }, [user]);
-
-  useEffect(() => {
-    const fetchEvents = async () => {
+    const fetchDashboardData = async () => {
       if (!user) return;
       setLoading(true);
       try {
         const token = await user.getIdToken();
-        const url = searchQuery.trim() 
-          ? `${API_BASE_URL}/api/recommendations/users/${user.uid}?search_query=${encodeURIComponent(searchQuery.trim())}` 
-          : `${API_BASE_URL}/api/recommendations/users/${user.uid}`;
+        const headers = { Authorization: `Bearer ${token}` };
         
+        // Parallel fetch: stats and recommendations
+        const [statsRes, recRes] = await Promise.all([
+          fetch(`${API_BASE_URL}/api/volunteers/${user.uid}/dashboard`, { headers }),
+          fetch(`${API_BASE_URL}/api/recommendations/users/${user.uid}`, { headers })
+        ]);
+        
+        if (statsRes.ok) {
+          const d = await statsRes.json();
+          if (d.stats) setStats(d.stats);
+        }
+        if (recRes.ok) {
+          const d = await recRes.json();
+          setEvents(d.data || []);
+        }
+      } catch (err) {
+        console.error("Dashboard fetch error:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchDashboardData();
+  }, [user]);
+
+  // Search-triggered re-fetch (debounced)
+  useEffect(() => {
+    if (!user || !searchQuery.trim()) return;
+    
+    const fetchFilteredEvents = async () => {
+      setLoading(true);
+      try {
+        const token = await user.getIdToken();
+        const url = `${API_BASE_URL}/api/recommendations/users/${user.uid}?search_query=${encodeURIComponent(searchQuery.trim())}`;
         const recRes = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
         if (recRes.ok) {
           const d = await recRes.json();
           setEvents(d.data || []);
         }
       } catch (err) {
-        console.error("Dashboard events fetch error:", err);
+        console.error("Search fetch error:", err);
       } finally {
         setLoading(false);
       }
     };
 
-    const delayTimer = setTimeout(() => {
-      fetchEvents();
-    }, 400);
-
+    const delayTimer = setTimeout(fetchFilteredEvents, 400);
     return () => clearTimeout(delayTimer);
   }, [user, searchQuery]);
 

@@ -1,6 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from database import get_db
 from dependencies import get_current_user
+import logging
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/recommendations", tags=["recommendations"])
 
@@ -72,5 +75,5 @@ def get_user_event_recommendations(
     except HTTPException:
         raise
     except Exception as e:
-        print(f"Error fetching recommendations: {e}")
+        logger.error(f"Error fetching recommendations: {e}")
         return {"data": []}

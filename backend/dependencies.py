@@ -7,6 +7,8 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+logger = logging.getLogger(__name__)
+
 # --- Firebase Admin Setup ---
 try:
     cred_path = os.getenv("FIREBASE_CREDENTIALS")
@@ -15,18 +17,16 @@ try:
     if cred_path and os.path.exists(cred_path):
         cred = credentials.Certificate(cred_path)
         firebase_admin.initialize_app(cred)
-        print(f"Firebase Admin initialized with credentials from {cred_path}")
+        logger.info(f"Firebase Admin initialized with credentials from {cred_path}")
     else:
         try:
             firebase_admin.initialize_app(options={"projectId": override_project_id})
-            print(f"Firebase Admin initialized with forced projectId: {override_project_id}")
+            logger.info(f"Firebase Admin initialized with forced projectId: {override_project_id}")
         except Exception as e:
-            print(f"Warning: Firebase Admin could not be initialized. Auth verification may fail. Error: {e}")
+            logger.warning(f"Firebase Admin could not be initialized. Auth verification may fail. Error: {e}")
 except ValueError:
     # App already initialized
     pass
-
-logger = logging.getLogger(__name__)
 
 async def get_current_user(authorization: str = Header(None)):
     """

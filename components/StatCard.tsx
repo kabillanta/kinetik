@@ -1,6 +1,12 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+import { LucideIcon } from "lucide-react";
 
-export default function StatCard({ label, value, icon: Icon }: any) {
+interface StatCardProps {
+  label: string;
+  value: string | number;
+  icon?: LucideIcon;
+}
+
+export default function StatCard({ label, value, icon: Icon }: StatCardProps) {
   return (
     <div className="p-6 rounded-2xl border border-black/[0.04] bg-white flex flex-col justify-between shadow-sm hover:shadow-md transition-all">
       <div className="flex items-center justify-between mb-4">
