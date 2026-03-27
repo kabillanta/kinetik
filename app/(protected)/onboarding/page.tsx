@@ -54,7 +54,7 @@ export default function OnboardingPage() {
       const trimmedSkill = currentSkill.trim();
       if (trimmedSkill) {
         if (skills.includes(trimmedSkill)) {
-          toast("Skill already added", "warning");
+          toast("Skill already added", "info");
         } else {
           setSkills([...skills, trimmedSkill]);
         }
