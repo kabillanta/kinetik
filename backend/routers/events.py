@@ -1,7 +1,7 @@
 import uuid
-from fastapi import APIRouter, Depends, HTTPException, Body
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
-from typing import List, Optional
+from typing import List
 from database import get_db
 from dependencies import get_current_user
 from services.email import (
