@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import { useState } from "react";
@@ -13,6 +12,7 @@ import {
   Loader2,
   AlertCircle,
 } from "lucide-react";
+import { User as FirebaseUser } from "firebase/auth";
 import { useAuth } from "@/lib/auth-context";
 import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
 import { auth } from "@/lib/firebase";
@@ -38,7 +38,7 @@ export default function SignupPage() {
   const { toast } = useToast();
 
   // --- 1. The Function to Sync with Backend ---
-  const saveUserToBackend = async (firebaseUser: any, role: string) => {
+  const saveUserToBackend = async (firebaseUser: FirebaseUser, role: string) => {
     try {
       // Get the Firebase ID Token to verify identity on backend
       const token = await firebaseUser.getIdToken();
@@ -94,9 +94,10 @@ export default function SignupPage() {
 
       // New users go to onboarding to complete their profile
       router.push("/onboarding");
-    } catch (err: any) {
+    } catch (err) {
       console.error(err);
-      setError(err.message || "Google sign-in failed.");
+      const errorMessage = err instanceof Error ? err.message : "Google sign-in failed.";
+      setError(errorMessage);
       setIsLoading(false);
     }
   };
@@ -131,14 +132,15 @@ export default function SignupPage() {
       toast("Account created successfully!", "success");
       // New users go to onboarding to complete their profile
       router.push("/onboarding");
-    } catch (err: any) {
+    } catch (err) {
       console.error(err);
-      if (err.code === "auth/email-already-in-use") {
+      const firebaseError = err as { code?: string; message?: string };
+      if (firebaseError.code === "auth/email-already-in-use") {
         setError("This email is already registered.");
-      } else if (err.code === "auth/weak-password") {
+      } else if (firebaseError.code === "auth/weak-password") {
         setError("Password should be at least 6 characters.");
       } else {
-        setError(err.message || "Signup failed.");
+        setError(firebaseError.message || "Signup failed.");
       }
       setIsLoading(false);
     }

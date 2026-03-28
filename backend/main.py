@@ -11,7 +11,7 @@ from dotenv import load_dotenv
 
 from database import driver
 from routers import users, events, organizers, volunteers, recommendations, reviews
-from models.responses import ErrorResponse
+from models.responses import ErrorResponse, HealthResponse
 
 load_dotenv()
 
@@ -79,12 +79,12 @@ app.include_router(volunteers.router)
 app.include_router(recommendations.router)
 app.include_router(reviews.router)
 
-@app.get("/api/health")
+@app.get("/api/health", response_model=HealthResponse)
 def health_check():
     if not driver:
-        return {"status": "degraded", "database": "disconnected"}
+        return HealthResponse(status="degraded", database="disconnected")
     try:
         driver.verify_connectivity()
-        return {"status": "healthy", "database": "connected"}
+        return HealthResponse(status="healthy", database="connected")
     except Exception as e:
-        return {"status": "degraded", "database": f"error: {str(e)}"}
+        return HealthResponse(status="degraded", database=f"error: {str(e)}")
