@@ -1,9 +1,7 @@
-/* eslint-disable react-hooks/set-state-in-effect */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable react/no-unescaped-entities */
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { User } from "firebase/auth";
 import {
@@ -20,6 +18,7 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import CreateEventModal from "@/components/CreateEventModal";
+import ConfirmModal from "@/components/ConfirmModal";
 import StatCard from "@/components/StatCard";
 import { API_BASE_URL } from "@/lib/api-config";
 import { useToast } from "@/components/Toast";
@@ -314,36 +313,16 @@ const VolunteerDashboard = ({ user }: { user: User }) => {
       </div>
 
         {/* Confirmation Modal */}
-        {selectedEventToApply && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40">
-            <div className="bg-white rounded-3xl p-6 w-full max-w-md shadow-2xl animate-in zoom-in-95 duration-200">
-              <h3 className="text-xl font-bold text-black mb-2">Confirm Application</h3>
-              <p className="text-[#86868B] mb-6">
-                Are you sure you want to apply for the <span className="font-semibold text-black">"{selectedEventToApply.title}"</span> event as a <span className="font-semibold text-black">{selectedEventToApply.role_needed}</span>?
-              </p>
-              <div className="flex gap-3">
-                <button
-                  onClick={() => setSelectedEventToApply(null)}
-                  className="flex-1 py-3 bg-zinc-100 hover:bg-zinc-200 text-black font-semibold rounded-xl transition-all"
-                  disabled={applying === selectedEventToApply.id}
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleApply}
-                  className="flex-1 py-3 bg-black hover:bg-zinc-800 text-white font-semibold rounded-xl transition-all shadow-md flex items-center justify-center"
-                  disabled={applying === selectedEventToApply.id}
-                >
-                  {applying === selectedEventToApply.id ? (
-                    <Loader2 className="h-5 w-5 animate-spin" />
-                  ) : (
-                    "Confirm Apply"
-                  )}
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+        <ConfirmModal
+          isOpen={!!selectedEventToApply}
+          onClose={() => setSelectedEventToApply(null)}
+          onConfirm={handleApply}
+          title="Confirm Application"
+          message={selectedEventToApply ? `Are you sure you want to apply for "${selectedEventToApply.title}" as a ${selectedEventToApply.role_needed}?` : ""}
+          confirmText="Confirm Apply"
+          cancelText="Cancel"
+          loading={applying === selectedEventToApply?.id}
+        />
     </div>
   );
 };

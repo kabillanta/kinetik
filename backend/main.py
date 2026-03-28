@@ -1,4 +1,5 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 import os
 import logging
@@ -10,6 +11,7 @@ from dotenv import load_dotenv
 
 from database import driver
 from routers import users, events, organizers, volunteers, recommendations, reviews
+from models.responses import ErrorResponse
 
 load_dotenv()
 
@@ -55,6 +57,14 @@ limiter = Limiter(key_func=get_remote_address, default_limits=["100/minute"])
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 app.add_middleware(SlowAPIMiddleware)
+
+# Standard error response handler
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request: Request, exc: HTTPException):
+    return JSONResponse(
+        status_code=exc.status_code,
+        content=ErrorResponse(error=exc.detail, code=str(exc.status_code)).model_dump()
+    )
 
 @app.on_event("shutdown")
 def close_driver():

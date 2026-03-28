@@ -1,7 +1,7 @@
 import uuid
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Body
 from pydantic import BaseModel, Field
-from typing import List
+from typing import List, Optional
 from database import get_db
 from dependencies import get_current_user
 from services.email import (
@@ -22,8 +22,16 @@ class EventCreate(BaseModel):
     skills: List[str] = Field(default_factory=list, max_length=20)
     volunteers_needed: int = Field(default=5, ge=1, le=500)
 
+
+class ApplyRequest(BaseModel):
+    name: str = Field(default="Unknown Volunteer", max_length=100)
+
+
+class StatusUpdateRequest(BaseModel):
+    status: str = Field(..., pattern="^(ACCEPTED|REJECTED)$")
+
 @router.post("")
-async def create_event(request: Request, event: EventCreate, user_id: str = Depends(get_current_user)):
+def create_event(event: EventCreate, user_id: str = Depends(get_current_user)):
     """Create a new event in Neo4j and link it to the organizer and required skills."""
     title = event.title
     description = event.description
@@ -164,12 +172,8 @@ def delete_event(event_id: str, current_user: str = Depends(get_current_user)):
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/{event_id}/apply")
-async def apply_to_event(event_id: str, request: Request, user_id: str = Depends(get_current_user)):
-    try:
-        data = await request.json()
-    except Exception:
-        data = {}
-    name = data.get("name", "Unknown Volunteer")
+def apply_to_event(event_id: str, body: ApplyRequest, user_id: str = Depends(get_current_user)):
+    name = body.name
 
     driver = get_db()
     if not driver:
@@ -257,15 +261,8 @@ def withdraw_application(event_id: str, current_user: str = Depends(get_current_
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/{event_id}/applications/{volunteer_id}/status")
-async def update_application_status(event_id: str, volunteer_id: str, request: Request, user_id: str = Depends(get_current_user)):
-    try:
-        data = await request.json()
-    except Exception:
-        data = {}
-    
-    new_status = data.get("status")
-    if new_status not in ["ACCEPTED", "REJECTED"]:
-        raise HTTPException(status_code=400, detail="Invalid status. Must be ACCEPTED or REJECTED.")
+def update_application_status(event_id: str, volunteer_id: str, body: StatusUpdateRequest, user_id: str = Depends(get_current_user)):
+    new_status = body.status
 
     driver = get_db()
     if not driver:

@@ -17,7 +17,7 @@ class UserSyncPayload(BaseModel):
     onboarding_completed: bool = Field(default=False)
 
 @router.post("/users")
-async def create_or_sync_user(payload: UserSyncPayload, current_user: str = Depends(get_current_user)):
+def create_or_sync_user(payload: UserSyncPayload, current_user: str = Depends(get_current_user)):
     """
     Create or update a user from Firebase auth.
     For new signups, onboarding_completed should be False.
@@ -185,7 +185,7 @@ class ProfileUpdatePayload(BaseModel):
     availability: Optional[str] = None
 
 @router.patch("/users/{user_id}")
-async def update_user_profile(user_id: str, payload: ProfileUpdatePayload, current_user: str = Depends(get_current_user)):
+def update_user_profile(user_id: str, payload: ProfileUpdatePayload, current_user: str = Depends(get_current_user)):
     """Update a user's full profile settings."""
     if current_user != user_id:
         raise HTTPException(status_code=403, detail="Forbidden")
@@ -248,7 +248,7 @@ async def update_user_profile(user_id: str, payload: ProfileUpdatePayload, curre
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/users/skills")
-async def update_user_skills(skills: List[str] = Body(...), user_id: str = Depends(get_current_user)):
+def update_user_skills(skills: List[str] = Body(...), user_id: str = Depends(get_current_user)):
     """
     Update or create a user in Neo4j and link their skills.
     Expects a JSON array of strings e.g., ["React", "Python"]
