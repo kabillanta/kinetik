@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
@@ -162,7 +161,7 @@ export default function ProfilePage() {
 
       await refreshProfile();
       toast("Profile updated successfully!", "success");
-    } catch (e: any) {
+    } catch (e) {
       console.error("Error updating profile:", e);
       toast("Failed to update profile. Please try again.", "error");
     } finally {

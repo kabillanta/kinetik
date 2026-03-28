@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
@@ -22,7 +21,34 @@ import { User } from "firebase/auth";
 import { API_BASE_URL } from "@/lib/api-config";
 import { useToast } from "@/components/Toast";
 
-// StatCard imported from @/components/StatCard
+// Type definitions
+interface Application {
+  id: string;
+  volunteer_id: string;
+  volunteer_name: string;
+  event_id: string;
+  event_title: string;
+  status: string;
+  applied_at?: string;
+  skills?: string[];
+}
+
+interface RecentEvent {
+  id: string;
+  title: string;
+  date: string;
+  status: string;
+  applicant_count: number;
+  role?: string;
+  location?: string;
+  skills?: string[];
+}
+
+interface DashboardData {
+  stats: { active_events: number; pending_applications: number; total_volunteers: number };
+  applications: Application[];
+  recent_events?: RecentEvent[];
+}
 
 // --- 2. THE ORGANIZER VIEW ---
 const OrganizerDashboard = ({
@@ -33,13 +59,7 @@ const OrganizerDashboard = ({
   const [isModalOpen, setIsModalOpen] = useState(false);
   const router = useRouter();
 
-  const [dashboardData, setDashboardData] = useState<{
-    stats: { active_events: number; pending_applications: number; total_volunteers: number };
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    applications: any[];
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    recent_events?: any[];
-  } | null>(null);
+  const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [deletingEvent, setDeletingEvent] = useState<string | null>(null);

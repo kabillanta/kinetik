@@ -71,8 +71,7 @@ export function ProfileModal({
 
       await refreshProfile();
       onClose();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Error updating profile:", err);
       setError("Failed to update profile. Please try again.");
     } finally {

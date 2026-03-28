@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
@@ -29,6 +28,28 @@ interface Application {
   volunteer_photo?: string;
   skills: string[];
   status: string;
+  applied_at?: string;
+}
+
+interface EventFromAPI {
+  id: string;
+  title: string;
+  date: string;
+  location: string;
+  role: string;
+  skills: string[];
+  volunteersFilled: number;
+  volunteersTotal: number;
+  status: string;
+}
+
+interface ApplicationFromAPI {
+  event_id: string;
+  volunteer_id: string;
+  volunteer_name: string;
+  volunteer_photo?: string;
+  skills?: string[];
+  status?: string;
   applied_at?: string;
 }
 
@@ -80,10 +101,10 @@ export default function OrganizerEvents() {
         const dashboardJson = await dashboardRes.json();
         
         // Merge applications into events
-        const eventsWithApps = (eventsJson.events || []).map((ev: any) => {
+        const eventsWithApps = (eventsJson.events || []).map((ev: EventFromAPI) => {
           const eventApps = (dashboardJson.applications || [])
-            .filter((app: any) => app.event_id === ev.id)
-            .map((app: any) => ({
+            .filter((app: ApplicationFromAPI) => app.event_id === ev.id)
+            .map((app: ApplicationFromAPI) => ({
               volunteer_id: app.volunteer_id,
               volunteer_name: app.volunteer_name,
               volunteer_photo: app.volunteer_photo,

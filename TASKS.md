@@ -204,27 +204,23 @@
 - **Location**: `app/(protected)/layout.tsx`, `app/(protected)/profile/page.tsx`, `app/(protected)/organizer/events/page.tsx`
 - **Implementation**: Replaced all `<img>` tags with Next.js `<Image>` component for automatic optimization
 
-### 33. **[PERF] Code-Split Lucide Icons**
-- **Issue**: Importing 18+ icons even when only 4 used
-- **Fix**: Dynamic imports or direct imports:
-```tsx
-// Instead of: import { Calendar, User, ... } from 'lucide-react';
-import Calendar from 'lucide-react/dist/esm/icons/calendar';
-```
+### 33. ✅ **[PERF] Code-Split Lucide Icons** - NOT NEEDED
+- **Analysis**: Current named import pattern (`import { X, Calendar } from 'lucide-react'`) already enables tree-shaking
+- **Result**: Webpack/Turbopack only bundles used icons. Direct path imports would add complexity without benefit.
 
-### 34. **[PERF] Consolidate Dashboard API Calls**
-- **Issue**: Volunteer dashboard makes 2 parallel API calls (stats + recommendations)
-- **Fix**: Backend combined endpoint or parallel Promise.all with loading coordination:
-```typescript
-const [stats, events] = await Promise.all([
-  fetchStats(),
-  fetchEvents()
-]);
-```
+### 34. ✅ **[PERF] Consolidate Dashboard API Calls** - IMPLEMENTED
+- **Location**: `app/(protected)/dashboard/page.tsx`, `app/(protected)/organizer/dashboard/page.tsx`
+- **Implementation**: 
+  - Volunteer dashboard uses `Promise.all` for parallel stats + recommendations fetch
+  - Organizer dashboard uses single combined endpoint `/api/organizers/{uid}/dashboard`
 
-### 35. **[PERF] Add Service Worker for Offline Support**
-- **Issue**: App completely fails offline
-- **Fix**: Next.js PWA plugin with basic caching
+### 35. ✅ **[PERF] Add Service Worker for Offline Support** - IMPLEMENTED
+- **Location**: `public/sw.js`, `public/manifest.json`, `components/ServiceWorker.tsx`
+- **Implementation**:
+  - Service worker with stale-while-revalidate caching strategy
+  - PWA manifest with app metadata
+  - Apple Web App support
+  - Offline fallback for navigation requests
 
 ### 36. ✅ **[BACKEND] Consolidate N+1 Queries in Organizer Dashboard** - IMPLEMENTED
 - **Location**: `backend/routers/organizers.py`
@@ -234,82 +230,50 @@ const [stats, events] = await Promise.all([
 
 ## ⚫ TECH DEBT / CLEANUP
 
-### 37. **[DEBT] Remove ESLint Disable Comments**
-- **Issue**: 8+ files have `eslint-disable` at top
-- **Fix**: Fix underlying issues (type any, unescaped entities) properly
+### 37. ✅ **[DEBT] Remove ESLint Disable Comments** - FIXED
+- **Location**: Multiple files
+- **Implementation**:
+  - Removed file-level `eslint-disable` from dashboard, profile, applications, events pages
+  - Added proper TypeScript interfaces instead of `any`
+  - Fixed `catch (err: any)` to `catch (err: unknown)` with proper type guards
+  - Remaining: One intentional `react-hooks/exhaustive-deps` disable in auth-context (valid use case)
 
-### 38. **[DEBT] Extract Inline Modal Components**
-- **Issue**: Dashboard has 30+ line modal inline instead of using `ConfirmModal`
-- **Fix**: Use shared component:
-```tsx
-<ConfirmModal
-  isOpen={!!selectedEventToApply}
-  title="Confirm Application"
-  message={`Apply for "${selectedEventToApply?.title}"?`}
-  onConfirm={handleApply}
-  onCancel={() => setSelectedEventToApply(null)}
-/>
+### 38. ✅ **[DEBT] Extract Inline Modal Components** - IMPLEMENTED
+- **Location**: `app/(protected)/dashboard/page.tsx`
+- **Implementation**: Replaced inline 30+ line modal with shared `ConfirmModal` component
+
+### 39. ✅ **[DEBT] Standardize Error Response Shape** - IMPLEMENTED
+- **Location**: `backend/main.py`, `backend/models/responses.py`
+- **Implementation**:
+  - Created `ErrorResponse` model with success, error, code fields
+  - Added global `@app.exception_handler(HTTPException)` 
+  - All HTTP exceptions now return consistent JSON shape
+
+### 40. ✅ **[DEBT] Add Python Logging Framework** - IMPLEMENTED
+- **Location**: `backend/main.py`, `backend/database.py`, `backend/dependencies.py`, all routers
+- **Implementation**:
+  - Configured logging with INFO level and timestamp format
+  - Replaced all `print()` statements with `logger.info()` / `logger.error()`
+  - Added `exc_info=True` for error logging with stack traces
+
+### 41. ✅ **[DEBT] Fix Async/Sync Inconsistency in FastAPI** - FIXED
+- **Location**: `backend/routers/events.py`, `backend/routers/users.py`
+- **Implementation**: Changed `async def` to `def` for routes using sync Neo4j driver
+
+### 42. ✅ **[DEBT] Add Response Models to All Endpoints** - IMPLEMENTED
+- **Location**: `backend/models/responses.py`, all routers
+- **Implementation**:
+  - Created comprehensive response models (UserProfileResponse, EventResponse, ApplicationResponse, etc.)
+  - Added `response_model` parameter to key endpoints
+  - Improved API documentation auto-generation
 ```
 
-### 39. **[DEBT] Standardize Error Response Shape**
-- **Issue**: Backend returns `{detail: ...}` sometimes, `{message: ...}` other times
-- **Fix**: Create standard error model:
-```python
-class ErrorResponse(BaseModel):
-    success: bool = False
-    error: str
-    code: Optional[str] = None
-
-@app.exception_handler(HTTPException)
-def http_exception_handler(request, exc):
-    return JSONResponse(
-        status_code=exc.status_code,
-        content=ErrorResponse(error=exc.detail).dict()
-    )
-```
-
-### 40. **[DEBT] Add Python Logging Framework**
-- **Issue**: `print()` statements scattered (13+ occurrences)
-- **Fix**:
-```python
-import logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
-logger.info("Neo4j driver initialized")
-logger.error("Database error", exc_info=True)
-```
-
-### 41. **[DEBT] Fix Async/Sync Inconsistency in FastAPI**
-- **Issue**: Routes marked `async def` but use sync Neo4j driver (blocking)
-- **Fix**: Either use sync `def` or migrate to async Neo4j driver
-
-### 42. **[DEBT] Add Response Models to All Endpoints**
-- **Issue**: No `response_model` = no auto-documentation
-- **Fix**:
-```python
-class UserResponse(BaseModel):
-    uid: str
-    name: str
-    email: str
-    role: str
-
-@router.get("/users/{user_id}", response_model=UserResponse)
-def get_user_profile(...):
-```
-
-### 43. **[DEBT] Create Shared Form Validation (Zod)**
-- **Issue**: Form validation is HTML5 `required` only
-- **Fix**: Add Zod schemas:
-```typescript
-import { z } from 'zod';
-
-const eventSchema = z.object({
-  title: z.string().min(3).max(150),
-  description: z.string().min(10).max(5000),
-  date: z.string().datetime(),
-  skills: z.array(z.string()).max(20),
-});
-```
+### 43. ✅ **[DEBT] Create Shared Form Validation (Zod)** - IMPLEMENTED
+- **Location**: `lib/validations.ts`
+- **Implementation**:
+  - Created Zod schemas for all forms (signup, login, event, profile, review)
+  - Added `validateForm` helper function for reuse
+  - Exported TypeScript types inferred from schemas
 
 ---
 

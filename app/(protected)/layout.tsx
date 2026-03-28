@@ -1,7 +1,6 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, ReactElement, cloneElement } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { useRouter, usePathname } from "next/navigation";
 import Image from "next/image";
@@ -14,8 +13,14 @@ import {
   BarChart3,
   Bell,
 } from "lucide-react";
-import React from "react";
 import Link from "next/link";
+
+interface NavItemProps {
+  href: string;
+  icon: ReactElement<{ className?: string }>;
+  label: string;
+  active: boolean;
+}
 
 export default function ProtectedLayout({
   children,
@@ -382,7 +387,7 @@ export default function ProtectedLayout({
 }
 
 // Simple Nav Item Component
-function NavItem({ href, icon, label, active }: any) {
+function NavItem({ href, icon, label, active }: NavItemProps) {
   return (
     <Link
       href={href}
@@ -392,14 +397,14 @@ function NavItem({ href, icon, label, active }: any) {
           : "text-[#86868B] hover:bg-black/[0.04] hover:text-[#1D1D1F]"
       }`}
     >
-      {React.cloneElement(icon, { className: "h-4 w-4" })}
+      {cloneElement(icon, { className: "h-4 w-4" })}
       {label}
     </Link>
   );
 }
 
 // Mobile Bottom Nav Item
-function MobileNavItem({ href, icon, label, active }: any) {
+function MobileNavItem({ href, icon, label, active }: NavItemProps) {
   return (
     <Link
       href={href}
@@ -409,7 +414,7 @@ function MobileNavItem({ href, icon, label, active }: any) {
           : "text-[#86868B]"
       }`}
     >
-      {React.cloneElement(icon, { className: "h-5 w-5" })}
+      {cloneElement(icon, { className: "h-5 w-5" })}
       <span className={`text-[10px] font-semibold ${active ? "text-black" : ""}`}>{label}</span>
     </Link>
   );

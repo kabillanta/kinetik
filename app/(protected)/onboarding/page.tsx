@@ -131,10 +131,10 @@ export default function OnboardingPage() {
         router.push("/dashboard");
       }, 100);
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Error during onboarding:", err);
-      setError(err.message || "Failed to save profile. Please try again.");
+      const message = err instanceof Error ? err.message : "Failed to save profile. Please try again.";
+      setError(message);
       setIsTransitioning(false); // Reset guard on error
     } finally {
       setIsLoading(false);
